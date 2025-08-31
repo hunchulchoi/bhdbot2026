@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko"  xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>보험선택 통계</title>
+
+
+  <link rel="stylesheet" href="/js/lib/bootstrap/v5.3.3/bootstrap.min.css"/>
+  <link rel="stylesheet" href="/js/lib/bootstrap/icons/v1.11.3/bootstrap-icons.min.css"/>
+
+  <script type="text/javascript" src="/js/lib/bootstrap/v5.3.3/bootstrap.bundle.min.js"></script>
+
+  <script type="text/javascript" src="/js/lib/js-loading-overlay/js-loading-overlay.min.js"></script>
+
+  <script type="text/javascript" src="/js/lib/alpinejs/alpinejs.cdn.min.js" defer></script>
+
+  <script type="text/javascript" src="/js/lib/chartjs/v4.4.5/chart.umd.min.js" defer></script>
+
+
+  <script src="/js/nxt/nxtUtil.js"></script>
+
+  <style>
+      body {
+          overflow-scrolling: auto;
+          letter-spacing: 0.02em;
+      }
+
+      table {
+          font-size: small;
+      }
+
+      table td {
+          overflow-wrap: normal;
+          vertical-align: middle;
+      }
+
+      img{
+          max-height: 25px;
+          padding-right: 2px;
+          max-width: 25px;
+      }
+
+      tfoot td select option{
+          max-width: 100px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+      }
+  </style>
+
+</head>
+<body>
+
+  <div class="container-lg mt-3 py-2 fixed-top bg-info-subtle opacity-75 rounded-3 shadow" x-data="statData">
+    <!--<h5>보험선택 통계</h5>-->
+
+    <div class="row g-2 p-2">
+      <div class="col-2">
+        <label for="grpLcsfCd" class="form-label">대그룹</label>
+        <select id="grpLcsfCd" class="form-select" x-model="grpLcsfCd">
+          <template x-for="lcsfCd in grpLcsfs">
+            <option :value="lcsfCd.grpLcsfCd" x-text="`${lcsfCd.grpLcsfNm}(${lcsfCd.grpLcsfCd})`"></option>
+          </template>
+        </select>
+      </div>
+      <div class="col-3">
+        <label for="grpMcsfCd" class="form-label">중그룹</label>
+        <select id="grpMcsfCd" class="form-select"
+                x-model="grpMcsfCd" @change.throttle="fetchData('M')">
+            <option value="">전체</option>
+          <template x-for="mcsfCd in grpMcsfs.filter(m=>m.grpLcsfCd === grpLcsfCd)">
+            <option :value="mcsfCd.grpMcsfCd" x-text="`${mcsfCd.grpMcsfNm}(${mcsfCd.grpMcsfCd})`"></option>
+          </template>
+        </select>
+      </div>
+      <div class="col-3">
+        <label for="oprInstCd" class="form-label">운영기관</label>
+        <select id="oprInstCd" class="form-select"
+                x-model="oprInstCd" @change.throttle="fetchData('S')">
+          <option value="">전체</option>
+          <template x-for="oprCd in grpScsfs.filter(m=>m.grpLcsfCd === grpLcsfCd && m.grpMcsfCd === grpMcsfCd)">
+            <option :value="oprCd.oprInstCd" x-text="`${oprCd.oprInstNm}(${oprCd.oprInstCd})`"></option>
+          </template>
+        </select>
+      </div>
+      <div class="col-2 align-self-center ps-5">
+
+        <label for="isrPrdCd" class="form-label">보험상품</label>
+        <select id="isrPrdCd" class="form-select"
+                x-model="isrPrdCd" @change.throttle="drawStatChart()">
+          <template x-for="isrPrd in isrPrdCds">
+            <option :value="isrPrd.ISR_PRD_CD" x-text="`${isrPrd.ISR_PRD_NM}(${isrPrd.ISR_PRD_CD})`"></option>
+          </template>
+        </select>
+      </div>
+      <div class="col-2 align-self-center ps-5">
+        <button class="btn btn-primary" @click.throttle="fetchData()">조회</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid mt-5 pt-5">
+    <div class="row mt-3 p-3">
+      <div class="col-5 border rounded-3">
+        <div class="row p-3" id="summaryTgr"></div>
+
+        <div class="row">
+          <div class="col p-3">
+            <table class="table table-bordered table-striped table-hover table-sm" id="summaryTable">
+              <thead class="table-info">
+              <tr>
+                <th scope="col">보험상품</th>
+                <th scope="col">상세</th>
+                <th scope="col">성별</th>
+                <th scope="col">평균나이</th>
+                <th scope="col">인원</th>
+              </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+        <div class="row">
+          <canvas id="tgrChart" width="90%" height="70%"></canvas>
+        </div>
+      </div>
+      <div class="col-7 border rounded-3">
+        <canvas id="statChart" width="90%" height="70%"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <script th:inline="javascript">
+
+
+    const bseYr = location.pathname.split('/').at(-1).replace('.jdo', '')
+
+    function statData() {
+
+      return{
+        grpLcsfs: [],
+        grpMcsfs: [],
+        grpScsfs: [],
+        grpLcsfCd: '',
+        grpMcsfCd: '',
+        oprInstCd: '',
+        isrPrdCds: [],
+        isrPrdCd: '',
+        tgrChart: null,
+        statChart: null,
+        bhdSlcStat: [],
+        bhdSlcSummary: [],
+        init(){
+
+          const grps = [[${grpLcsfs}]];
+
+          this.grpLcsfs = [...new Set(grps.map(g=> JSON.stringify({grpLcsfCd: g.grpLcsfCd, grpLcsfNm: g.grpLcsfNm})))]
+            .map(l=>JSON.parse(l))
+
+          this.grpLcsfCd = this.grpLcsfs[0].grpLcsfCd;
+
+
+          this.grpMcsfs = [...new Set(grps.map(g=> JSON.stringify({grpLcsfCd: g.grpLcsfCd, grpMcsfCd: g.grpMcsfCd, grpMcsfNm: g.grpMcsfNm})))]
+            .map(l=>JSON.parse(l))
+
+          console.log('grpMcsfs', this.grpMcsfs)
+
+          this.grpScsfs = [...new Set(grps.map(g=> JSON.stringify({grpLcsfCd: g.grpLcsfCd, grpMcsfCd: g.grpMcsfCd
+              , oprInstCd: g.oprInstCd, oprInstNm: g.oprInstNm})))]
+            .map(l=>JSON.parse(l))
+
+          console.log('grpScsfs', this.grpScsfs)
+
+        },
+        fetchData(level){
+
+
+
+
+          if(!level){
+            this.grpMcsfs = '';
+            this.oprInstCd = '';
+          }else if(level === 'M'){
+            this.oprInstCd = '';
+          }
+
+          this.loading()
+
+          const params = {};
+
+          if(this.grpMcsfCd) params.grpMcsfCd = this.grpMcsfCd;
+          if(this.oprInstCd) params.oprInstCd = this.oprInstCd;
+
+          let queryString = '';
+
+          if(params.grpMcsfCd) queryString = '?'+new URLSearchParams(params).toString()
+
+          const fetchUrl = location.pathname.startsWith('/wca/')?'/wca/bhd/stat/':'/wus/uim/bsm/testBhdSlcView/s'
+
+          fetch(`${fetchUrl}/tgrs/${bseYr}/${this.grpLcsfCd}.jdo${queryString}`)
+            .then(r=>r.json())
+            .then(r=>{
+              console.log('tgrs', r);
+
+              this.drawTgrChart(r)
+            })
+            .catch((error)=>{
+
+              console.error('데이터 로딩 실패:', error)
+              alert('데이터 로딩 실패')
+
+            })
+
+          fetch(`${fetchUrl}/summary/${bseYr}/${this.grpLcsfCd}.jdo${queryString}`)
+            .then(r=>r.json())
+            .then(r=>{
+              console.log('summary', r);
+
+              this.bhdSlcSummary = r;
+
+console.log('this.bhdSlcSummary', this.bhdSlcSummary)
+
+              this.drawTable();
+
+            })
+            .catch((error)=>{
+
+              console.error('데이터 로딩 실패:', error)
+              alert('데이터 로딩 실패')
+
+            })
+
+
+          fetch(`${fetchUrl}/slc/${bseYr}/${this.grpLcsfCd}.jdo${queryString}`)
+            .then(r=>r.json())
+            .then(r=>{
+              console.log('slc', r);
+
+              this.bhdSlcStat = r;
+
+              this.isrPrdCds = [...new Set(r.map(s=> JSON.stringify({ISR_PRD_CD: s.ISR_PRD_CD, ISR_PRD_NM: s.ISR_PRD_NM})))]
+                .map(l=>JSON.parse(l))
+
+              this.isrPrdCd = this.isrPrdCds[0].ISR_PRD_CD;
+              //this.drawTgrChart(r.tgrs)
+
+              this.drawStatChart();
+            })
+            .catch(error=>{
+
+              console.error('데이터 로딩 실패:', error)
+              alert('데이터 로딩 실패')
+
+            }).finally(()=> this.loading(false));
+        },
+        drawTgrChart(tgrs){
+
+          const tbody = document.querySelector('#summaryTable').tBodies[0];
+
+          tbody.innerHTML = '';
+
+          const mTotal = tgrs.map(t=>t.M_N_CNT + t.M_Y_CNT + t.M_0_CNT).reduce((a, b)=> a+b, 0);
+          const fTotal = tgrs.map(t=>t.F_N_CNT + t.F_Y_CNT + t.F_0_CNT).reduce((a, b)=> a+b, 0);
+          const total = tgrs.map(t=>t.CNT).reduce((a, b)=> a+b, 0);
+
+          document.querySelector('#summaryTgr').innerHTML = `<div>
+남: <strong>${mTotal.toLocaleString()}</strong>
+ 여: <strong>${fTotal.toLocaleString()}</strong> 전체: <strong>${total.toLocaleString()}</strong>
+ </div>`
+
+          if(this.tgrChart) this.tgrChart.destroy();
+
+          this.tgrChart = new Chart(document.querySelector('#tgrChart'), {
+            type: 'bar',
+            data: {
+              labels: tgrs.map(t=>t.PSE_AG),
+              datasets:[
+                {
+                  label: '남',
+                  data: tgrs.map(t=>(t.M_N_CNT*-1)),
+                  stack: 'stackM'
+                },
+                {
+                  label: '여',
+                  data: tgrs.map(t=>(t.F_N_CNT)),
+                  stack: 'stackF',
+                },
+                {
+                  label: '남(일괄)',
+                  data: tgrs.map(t=>(t.M_Y_CNT*-1)),
+                  stack: 'stackM'
+                },
+                {
+                  label: '여(일괄)',
+                  data: tgrs.map(t=>(t.F_Y_CNT)),
+                  stack: 'stackF',
+                },
+                {
+                  label: '남(미선택)',
+                  data: tgrs.map(t=>(t.M_0_CNT*-1)),
+                  stack: 'stackM'
+                },
+                {
+                  label: '여(미선택)',
+                  data: tgrs.map(t=>(t.F_0_CNT)),
+                  stack: 'stackF',
+                }
+              ]
+            },
+            options: {
+              indexAxis: 'y',
+              elements:{
+                bar:{
+                  borderWidth: 2,
+                }
+              },
+              responsive: true,
+
+              scales:{
+                x: {
+                  stacked: true,
+                  ticks:{
+                    callback: (v)=> Math.abs(v)
+                  }
+                },
+                y: {
+                  stacked: true,
+                  ticks:{
+                    position: 'left',
+                  }
+                }
+              },
+              plugins:{
+                legend: {
+                  position: 'right',
+                },
+                title:{
+                  display: true,
+                  text: '보험선택 대상자',
+                },
+                tooltip:{
+                  intersect: true,
+                  callbacks:{
+                    label: (c)=> `${c.dataset.label}: ${Math.abs(Number(c.raw).toLocaleString())}`
+                  }
+                }
+              }
+            },
+          });
+
+        },
+        drawStatChart(){
+
+
+          const makeDataSets = ()=>{
+
+console.log('this.isrPrdCd', this.isrPrdCd, 'filtered', filtered)
+
+            const isrDtls = [...new Set(filtered.map(s=> JSON.stringify({ISR_DTL_CD: s.ISR_DTL_CD, ISR_DTL_NM: s.ISR_DTL_NM})))]
+              .map(l=>JSON.parse(l));
+
+            const result = [];
+
+            isrDtls.forEach(p=>{
+
+              result.push(({
+                label: `${p.ISR_DTL_NM} 남`,
+                data: filtered.filter(f=>f.ISR_DTL_CD === p.ISR_DTL_CD).map(f=>f.M_CNT),
+                stack: p.ISR_PRD_CD + '_M'
+              }))
+
+              result.push(({
+                label: `${p.ISR_DTL_NM} 여`,
+                data: filtered.filter(f=>f.ISR_DTL_CD === p.ISR_DTL_CD).map(f=>f.F_CNT),
+                stack: p.ISR_PRD_CD + '_F'
+              }))
+
+            })
+
+            return result;
+
+          }
+
+          const tbody = document.querySelector('#summaryTable').tBodies[0];
+
+          tbody.innerHTML = '';
+
+          if(this.bhdSlcSummary && this.bhdSlcSummary.length) this.drawTable();
+
+          const filtered = this.bhdSlcStat.filter(s=>s.ISR_PRD_CD === this.isrPrdCd);
+
+          const ages = [...new Set(filtered.map(t=>t.PSE_AG))];
+
+          const datasets = makeDataSets();
+
+console.log('datasets', datasets)
+
+          if(this.statChart) this.statChart.destroy();
+
+          this.statChart = new Chart(document.querySelector('#statChart'), {
+            type: 'bar',
+            data: {
+              labels: ages,
+              datasets: datasets
+            },
+            options: {
+              responsive: true,
+              scales:{
+                x:{
+                  stacked: true,
+                },
+                y:{
+                  stacked: true,
+                },
+              },
+              plugins:{
+                title:{
+                  display: true,
+                  text: '보험 선택',
+                }
+              }
+            },
+          });
+
+
+        },
+        drawTable(){
+
+          const tbody = document.querySelector('#summaryTable').tBodies[0];
+
+          tbody.innerHTML = '';
+
+          const filtered = this.bhdSlcSummary.filter(s=>s.ISR_PRD_CD === (this.isrPrdCd || '"IL0001"'));
+
+console.log('this.isrPrdCd', this.isrPrdCd, 'drawTable filtered', filtered)
+
+          filtered.forEach(f=>{
+
+            const _row = tbody.insertRow();
+
+            const _cell1 = _row.insertCell();
+            _cell1.innerText = f.ISR_PRD_NM;
+            const _cell2 = _row.insertCell();
+            _cell2.innerText = f.ISR_DTL_NM;
+            const _cell3 = _row.insertCell();
+            _cell3.classList.add('text-center')
+            _cell3.innerText = f.TGR_SX_CL_CD==='1'?'남':'여';
+            const _cell4 = _row.insertCell();
+            _cell4.classList.add('text-end', 'pe-3')
+            _cell4.innerText = f.AVG_AG;
+            const _cell5 = _row.insertCell();
+            _cell5.classList.add('text-end', 'pe-3')
+            _cell5.innerText = f.CNT.toLocaleString();
+
+
+          })
+
+        },
+        loading(show=true){
+          show?JsLoadingOverlay.show():JsLoadingOverlay.hide()
+        }
+
+
+      }
+    }
+
+  </script>
+
+</body>
+</html>

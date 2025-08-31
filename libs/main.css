@@ -1,0 +1,147 @@
+/**
+ * Necessário para a tag `main` saber qual o valor restante ela deve ocupar
+ */
+html,
+body {
+    height: 100%;
+    font-family: "Nanum Gothic", sans-serif;
+    color: rgb(34,34,34);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/**
+ * Necessário para podermos deixar a tag `main` ocupar a altura restante
+ * disponível utilizando a prop `flex-grow`
+ */
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+main > .container {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.card {
+    position: relative;
+    border-radius: 10px;
+    background-color: #9bbbd4;
+    height: auto;
+    min-height: 100%;
+}
+
+.card-header,
+.card-footer {
+    position: sticky;
+    /** Necessário para ficar acima das mensagens
+     * (deixei o important somente para não ser sobrescrito pelo seu valor abaixo)
+     */
+    background-color: #1e1e33;
+}
+
+.card-header {
+    top: 0;
+    background-color: rgb(169, 189, 206);
+}
+
+.card-footer {
+    bottom: 0;
+}
+
+body { background-color: #161625; }
+
+.card {
+
+}
+
+h1, h2, h3, h4, h5, h6, h7,
+.text-dark {
+  color: #818cab !important;
+}
+
+a {
+    color: #6274a8;
+    text-decoration: none;
+    transition: all linear 0.3s;
+}
+
+a:hover {
+    color: #fff;
+    cursor: pointer;
+}
+
+.message {
+    color: rgb(34,34,34);
+    background-color: #FEE500!important;
+}
+
+.message-freind {
+    color: rgb(34,34,34);
+    background-color: #FFF!important;
+ }
+
+.other,
+.own {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.other {
+    margin-right: auto
+}
+
+.own {
+    flex-direction: row-reverse;
+    margin-left: auto
+}
+
+.form-control,
+.form-control:focus {
+    color: #e1e1ff;
+    background-color: #262640;
+    border-color: #262640;
+}
+
+.custom-border-top {
+    border-top: 2px solid #262640 !important;
+    
+}
+
+.custom-border-bottom {
+    border-bottom: 2px solid #262640 !important;
+}
+
+.pointer{
+    cursor: pointer;
+}
+.pointer:hover{
+    color: #000;
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #262640;
+    border-radius: 15px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #d4aa70;
+}

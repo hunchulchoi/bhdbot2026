@@ -1,0 +1,79 @@
+:root {
+  --primary-color: #9A97F3;
+  --link-color: #6274a8;
+  --secondary-color: #818cab;
+  --font-color: #e1e1ff;
+  --bg-color: #161625;
+  --border-color: #262640;
+  --input-color: #262640;
+  --input-bg: #262640;
+  --container-color: #1e1e33;
+  --message-bg: #FEE500;
+  --heading-color: #818cab;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--font-color);
+}
+
+svg {
+	color: var(--font-color);
+}
+
+h1,
+.text-dark {
+  color: var(--heading-color) !important;
+}
+
+a, a:hover {
+  color: var(--link-color);
+}
+
+.dropdown-menu {
+	background-color: var(--container-color);
+}
+
+.dropdown-menu li a {
+	color: var(--font-color);
+	background-color: var(--container-color);
+}
+
+.dropdown-menu li a:hover {
+	color: var(--font-color);
+	background: none;
+}
+
+.chat-container {
+    background-color: var(--container-color);
+}
+
+.message {
+	color: var(--font-color);
+    background-color: var(--message-bg) !important;
+}
+
+.form-control,
+.form-control:focus {
+    color: var(--font-color);
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+}
+
+.form-control::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+	color: var(--font-color);
+	opacity: 1; /* Firefox */
+}
+
+.position-relative {
+    scrollbar-color: var(--message-bg) transparent;
+    scrollbar-width: thin;
+}
+
+.custom-border-top {
+    border-top: 2px solid var(--message-bg) !important;
+}
+
+.custom-border-bottom {
+    border-bottom: 2px solid var(--message-bg) !important;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "bhdbot2026",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "alpinejs": "^3.14.9",
+    "bootstrap": "^5.3.7",
+    "inputmask": "^5.0.9",
+    "moment": "^2.30.1",
+    "pako": "^2.1.0",
+    "qrcode": "^1.5.4",
+    "tabulator-tables": "^6.3.1"
+  }
+}

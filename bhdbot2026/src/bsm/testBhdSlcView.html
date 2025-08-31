@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>사전선택 테스트</title>
+
+  <link rel="icon" href="https://www.gwp.or.kr/images/icon/iconpack/box.png" />
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href=" https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css " rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.1/css/tabulator_bootstrap5.min.css"
+    integrity="sha512-qDEgvDbdp7tq+ytU/OgCzWfvbfdEe3pv0yEOMz/gurMcR0BWNgIF6I4VKeoACEj5E5PFf1uo3Vzuwk/ga9zeUg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script type="text/javascript" src="/src/common/nxtUtil.js"></script>
+
+
+  <style>
+    table>td>th {
+      font-size: .7em;
+    }
+
+    .tabulator-editable {
+      border: 1px dotted var(--bs-green) !important;
+      border-radius: 4px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container-fluid p-5 w-100" x-data="init()" x-init="loadData()">
+
+    <h3>사전선택 테스트용 페이지</h3>
+
+    <form class="row g-3 mt-4 p-3 border-1 rounded-3 shadow align-items-center" onsubmit="return false">
+
+      <div class="my-3 row">
+        <div class="col-2">
+          <label for="bseYr">기준연도</label>
+          <input type="number" id="bseYr" class="form-control" required x-model="bseYr" :min="new Date().getFullYear()"
+            :max="new Date().getFullYear()+1">
+        </div>
+        <div class="col-2">
+          <label for="chldIsrAgRstcYr">자녀나이 제한연도</label>
+          <input type="number" id="chldIsrAgRstcYr" class="form-control" x-model="chldIsrAgRstcYr" :max="bseYr"
+            required>
+        </div>
+        <div class="col-1">
+          <span class="form-text" x-text='getRstcYr()'></span>
+        </div>
+        <div class="col-4">
+          <label for="isrSlcDt">보험선택기간</label>
+          <input type="text" id="isrSlcDt" class="form-control" x-ref="isrSlcDt" required>
+          <div class="invalid-feedback"></div>
+        </div>
+        <div class="col-3">
+          <label for="instNm">기관명</label>
+          <input type="text" id="instNm" class="form-control" x-model="instNm" required>
+          <div class="invalid-feedback"></div>
+        </div>
+      </div>
+
+
+      <div class="mb-3 row">
+        <div class="col-2">
+          <label for="pseFnm">성명</label>
+          <input type="text" id="pseFnm" autofocus x-model="pseFnm" required @focus="$event.target.select()"
+            :class="validFnm()?'form-control is-valid':'form-control is-invalid'">
+          <div class="invalid-feedback">올바른 성명을 입력하세요🤬</div>
+        </div>
+        <div class="col-3">
+          <label for="pseRrno">주민번호</label>
+          <input type="text" id="pseRrno" class="form-control" x-ref="pseRrno" x-model="pseRrno" @keyup="validRrno($el)"
+            required>
+          <div class="invalid-feedback">주민번호가 이상합니다.🤷‍♀️</div>
+        </div>
+        <div class="col-4">
+          <span class="form-text rrno-info"></span>
+        </div>
+      </div>
+
+      <div class="accordion" id="accordion-sps">
+        <div class="accordion-item">
+          <h4 class="accordion-header">
+            <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#collapse-sps"
+              aria-expanded="true" aria-controls="collapse-sps">
+              배우자
+            </button>
+          </h4>
+          <div id="collapse-sps" class="accordion-collapse collapse show" data-bs-parent="#accordion-sps">
+            <div class="accordion-body">
+              <div class="row m-0 p-1">
+                <div class="col-md-1 form-check form-switch">
+                  <label for="spsUse">배우자</label>
+                  <input type="checkbox" id="spsUse" role="switch" class="form-check-input" x-model="spsUse">
+                </div>
+
+                <div class="col-md-1 form-check">
+                  <label for="spsCop">공무원</label>
+                  <input type="checkbox" id="spsCop" class="form-check-input" x-model="spsCop" :disabled="!spsUse">
+                </div>
+
+                <div class="col-md-2">
+                  <input type="text" id="spsName" class="form-control" placeholder="이름을 입력하세요" x-model="spsName"
+                    :disabled="!spsUse" x-ref="spsNameEL">
+                </div>
+
+                <div class="col-md-4">
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="text" id="spsRrno" class="form-control" placeholder="주민번호" x-model="spsRrno"
+                        @keyup="validRrno($el)" x-ref="spsRrnoEL" x-init="()=>{
+                  Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);
+                  $nextTick(()=>validRrno($el))
+                }" :disabled="!spsUse">
+                      <div class="invalid-feedback">주민번호가 이상합니다.🤷‍♀️</div>
+                    </div>
+                    <div class="col-6">
+                      <span class="form-text rrno-info"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <input type="tel" id="spsTel" class="form-control" placeholder="010-0000-0000" x-model="spsTel"
+                    x-init="Inputmask({mask: '999-9999-9999', keepStatic: true, placeholder: '010-0000-0000', autoUnmask: true}).mask($el);"
+                    :disabled="!spsUse">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <div class="accordion" id="accordion-child">
+        <div class="accordion-item">
+          <h4 class="accordion-header">
+            <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#collapse-child"
+              aria-expanded="true" aria-controls="collapse-child">
+              자녀
+            </button>
+          </h4>
+          <div id="collapse-child" class="accordion-collapse collapse show" data-bs-parent="#accordion-sps">
+            <div class="accordion-body">
+              <div class="row m-0 p-1">
+                <div class="col-md-1 form-check form-switch">
+                  <label for="child1Use">자녀1</label>
+                  <input type="checkbox" id="child1Use" role="switch" class="form-check-input" x-model="child1Use">
+                </div>
+
+                <div class="col-md-2">
+                  <input type="text" id="child1Name" class="form-control" placeholder="이름을 입력하세요" x-model="child1Name"
+                    :disabled="!child1Use" x-ref="child1NameEL">
+                </div>
+
+                <div class="col-md-4">
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="text" id="child1Rrno" class="form-control" placeholder="주민번호" x-model="child1Rrno"
+                        @keyup="validRrno($el)" x-ref="child1RrnoEL" x-init="()=>{
+                      Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);
+                      $nextTick(()=>validRrno($el))
+                    }" :disabled="!child1Use">
+                      <div class="invalid-feedback">주민번호가 이상합니다.🤷‍♀️</div>
+                    </div>
+                    <div class="col-6">
+                      <span class="form-text rrno-info"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <input type="tel" id="child1Tel" class="form-control" placeholder="010-0000-0000" x-model="child1Tel"
+                    x-init="Inputmask({mask: '999-9999-9999', keepStatic: true, placeholder: '010-0000-0000', autoUnmask: true}).mask($el);"
+                    :disabled="!child1Use">
+
+                </div>
+
+              </div>
+
+              <div class="row m-0 p-1">
+                <div class="col-md-1 form-check form-switch">
+                  <label for="child2Use">자녀2</label>
+                  <input type="checkbox" id="child2Use" role="switch" class="form-check-input" x-model="child2Use">
+                </div>
+
+                <div class="col-md-2">
+                  <input type="text" id="child2Name" class="form-control" placeholder="이름을 입력하세요" x-ref="child2NameEL"
+                    x-model="child2Name" :disabled="!child2Use">
+                </div>
+
+                <div class="col-md-4">
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="text" id="child2Rrno" class="form-control" placeholder="주민번호" x-model="child2Rrno"
+                        @keyup="validRrno($el)" x-ref="child2RrnoEL" x-init="()=>{
+                      Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);
+                      $nextTick(()=>validRrno($el))
+                    }" :disabled="!child2Use">
+                      <div class="invalid-feedback">주민번호가 이상합니다.🤷‍♀️</div>
+                    </div>
+                    <div class="col-6">
+                      <span class="form-text rrno-info"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <input type="tel" id="child2Tel" class="form-control" placeholder="010-0000-0000" x-model="child2Tel"
+                    x-init="Inputmask({mask: '999-9999-9999', keepStatic: true, placeholder: '010-0000-0000', autoUnmask: true}).mask($el);"
+                    :disabled="!child2Use">
+
+                </div>
+              </div>
+
+              <div class="row m-0 p-1">
+                <div class="col-md-1 form-check form-switch">
+                  <label for="child3Use">자녀3</label>
+                  <input type="checkbox" id="child3Use" role="switch" class="form-check-input" x-model="child3Use">
+                </div>
+
+                <div class="col-md-2">
+                  <input type="text" id="child3Name" class="form-control" placeholder="이름을 입력하세요" x-model="child3Name"
+                    :disabled="!child3Use" x-ref="child3NameEL">
+                </div>
+
+                <div class="col-md-4">
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="text" id="child3Rrno" class="form-control" placeholder="주민번호" x-model="child3Rrno"
+                        @keyup="validRrno($el)" x-ref="child3RrnoEL" x-init="()=>{
+                      Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);
+                      $nextTick(()=>validRrno($el))
+                    }" :disabled="!child3Use">
+                      <div class="invalid-feedback">주민번호가 이상합니다.🤷‍♀️</div>
+                    </div>
+                    <div class="col-6">
+                      <span class="form-text rrno-info"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <input type="tel" id="child3Tel" class="form-control" placeholder="010-0000-0000" x-model="child3Tel"
+                    x-init="Inputmask({mask: '999-9999-9999', keepStatic: true, placeholder: '010-0000-0000', autoUnmask: true}).mask($el);"
+                    :disabled="!child3Use">
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <hr>
+
+      <h4>보험 선택 <em :class="filtered?'bi bi-eye-slash text-warning ms-2':'bi bi-eye text-success ms-2'"
+          @click="goFilter()"></em></h4>
+
+      <div class="row table-sm" id="isrPrdTable">
+
+        <!--<table id="isrPrdTable" class="table table-bordered table-hover table-sm" style="font-size: 1em"></table>-->
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-9 text-end">
+          <button class="btn btn-lg btn-success" @click="viewResult()">🐷ㄱㄱ</button>
+        </div>
+      </div>
+
+      <div class="row bg-info-subtle rounded-3 p-2 mt-3" x-text="toJson(result).length + '/' + defalreResult.length">
+      </div>
+      <div class="row bg-warning-subtle rounded-3 p-2 mt-3" @click="copyText($el.innerText)" x-text="toJson(result)">
+      </div>
+      <!--<div class="row bg-success-subtle rounded-3 p-2 mt-3" x-text="encodeBase64(toJson(result))" x-ref="result2"></div>-->
+      <div class="row bg-primary-subtle rounded-4 p-2 mt-3" @click="go()" x-text="defalreResult"></div>
+
+
+
+    </form>
+
+    <!-- alert와 confirm을 위한 modal -->
+    <div class="modal fade" tabindex="-1" id="infoModal">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary">
+            <h4 class="modal-title">보험선택 테스트</h4>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col info-message"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-md btn-info w-25 bi bi-airplane" @click="go(1)">Web 바로가기</button>
+            <button class="btn btn-md btn-success w-25 bi bi-link-45deg" @click="go()">바로가기</button>
+            <button class="btn btn-md btn-primary w-25" data-bs-dismiss="modal">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--// modal -->
+
+  </div>
+
+
+  <script type="module">
+
+    import * as bootstrap from 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/+esm'
+    import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/+esm'
+    import inputmask from 'https://cdn.jsdelivr.net/npm/inputmask@5.0.9/+esm'
+    import moment from 'https://cdn.jsdelivr.net/npm/moment@2.30.1/+esm'
+    import ko from 'https://cdn.jsdelivr.net/npm/moment@2.30.1/+esm'
+
+    import { TabulatorFull as Tabulator } from 'https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator_esm.min.mjs';
+
+    import pako from 'https://cdn.jsdelivr.net/npm/pako@2.1.0/+esm'
+
+
+    import { allIsrPrd } from './data/allIsrPrd.js'
+
+    window.Alpine = Alpine
+    Alpine.data('init', init)
+    Alpine.start()
+
+
+    console.log('bootstrap', bootstrap)
+    console.log('alpinejs', Alpine)
+    console.log('inputmask', inputmask)
+    console.log('moment', moment)
+    console.log('ko', ko)
+    console.log('tabulatorTables', Tabulator)
+    console.log('easepickbundle', easepick)
+    console.log('pako', pako)
+    console.log('qrcode',)
+
+    console.dir(QRCode)
+
+
+
+    const modal = new bootstrap.Modal(document.querySelector('#infoModal'))
+
+    function groupStyling(group) {
+      const selected = group.getRows().filter(r => r.isSelected()).length;
+      const count = group.getRows().length
+
+      // 다 해제 했을때 스타일링
+      if (selected) {
+        group.getElement().classList.remove('text-decoration-line-through', 'text-muted', 'fst-italic')
+      } else {
+        group.getElement().classList.add('text-decoration-line-through', 'text-muted', 'fst-italic')
+      }
+
+      const countEl = group.getElement().querySelector('span[name=groupCount]')
+
+      const nameEl = group.getElement().querySelector('span[name=groupName]')
+
+      const essYn = group.getRows()[0].getData().essYn;
+      console.log(selected, count, essYn)
+
+      if (essYn) {
+        countEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        countEl.classList.add('text-bg-success')
+        countEl.innerText = selected;
+
+        nameEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        nameEl.classList.add('text-bg-success')
+
+        return;
+      }
+
+      if (!selected) {
+        countEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        countEl.classList.add('text-bg-secondary')
+        countEl.innerText = selected;
+
+        nameEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        nameEl.classList.add('text-bg-secondary')
+
+      } else if (selected === count) {
+        countEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        countEl.classList.add('text-bg-primary')
+        countEl.innerText = selected;
+
+        nameEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        nameEl.classList.add('text-bg-primary')
+      } else {
+        countEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        countEl.classList.add('text-bg-warning')
+        countEl.innerText = `${selected}/${count}`;
+
+        nameEl.classList.remove('text-bg-primary', 'text-bg-warning', 'text-bg-secondary', 'text-bg-success')
+        nameEl.classList.add('text-bg-warning')
+      }
+    }
+
+
+
+    function init() {
+      return {
+        bseYr: 0,
+        chldIsrAgRstcYr: 0,
+        pseFnm: '오애순',
+        pseRrno: '',
+        instNm: '맞춤형복지기관',
+        picker: '',
+        isrSlcDt: '',
+        filtered: false,
+        result: '',
+        defalreResult: '',
+        link: '/src/bsm/bhdSlcView.html',
+        webLink: '',
+        params: '',
+        wlfInst: '',
+        isrPrdTable: null,
+
+        spsUse: true,
+        spsCop: false,
+        spsName: '양관식',
+        spsRrno: '8811111111111',
+        spsTel: '01012345678',
+
+        child1Use: true,
+        child1Name: '금명이',
+        child1Rrno: '0611114111111',
+        child1Tel: '01056783456',
+
+        child2Use: true,
+        child2Name: '은명이',
+        child2Rrno: '1211113111111',
+        child2Tel: '',
+
+        child3Use: true,
+        child3Name: '동명이',
+        child3Rrno: '1311113111111',
+        child3Tel: '',
+
+
+        loadData() {
+          this.bseYr = new Date().getFullYear() + 1
+          this.chldIsrAgRstcYr = this.bseYr - 19
+
+          Inputmask({ mask: "999999-9999999", keepStatic: true, placeholder: '0', autoUnmask: true }).mask(this.$refs.pseRrno);
+
+          const start = moment().subtract(1, 'month').format('YYYY-MM-DD');
+          const end = moment().add(1, 'month').format('YYYY-MM-DD');
+
+          this.picker = new easepick.create({
+            element: this.$refs.isrSlcDt,
+            css: [
+              'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+            ],
+            lang: 'ko-KR',
+            plugins: ['RangePlugin', 'LockPlugin'],
+            zIndex: 2000,
+            RangePlugin: {
+              tooltipNumber(num) {
+                return num;
+              },
+              locale: {
+                one: '일',
+                other: '일'
+              },
+              startDate: start,
+              endDate: end,
+            },
+            LockPlugin: {
+              minDate: start,
+              maxDate: end,
+            },
+            autoApply: true,
+          })
+
+          this.isrPrdTable = getTabulator()
+
+          this.isrPrdTable.on('rowSelectionChanged', (_data, _row, _selected, _deselected) => {
+            console.log('rowSelectionChanged', _selected, _deselected)// row.getData(), row.getGroup().getRows('active'), row.getGroup(), row)
+
+            const rows = (_selected && _selected.length) ? _selected : _deselected
+
+            rows.forEach(r => r.update({ selected: r.isSelected() }))
+
+            const groups = new Set(rows.map(g => g.getGroup()))
+
+            groups.forEach(groupStyling)
+          })
+
+          this.isrPrdTable.on('tableBuilt', () => {
+            this.isrPrdTable.selectRow()
+
+
+            /**
+             * 보험 필수여부 변경했을때
+             */
+            Array.from(document.querySelectorAll('input[type=checkbox][id^=essYn-]')).forEach(el => {
+              el.addEventListener('change', (evt) => {
+                console.log('change', evt.target.checked, evt.target.dataset.isrprdcd, evt.target.id, evt.target)
+
+                const group = this.isrPrdTable.getGroups().find(g => g.getKey() === evt.target.dataset.isrprdcd)
+
+                group.getRows().forEach(r => {
+                  r.update({ essYn: evt.target.checked ? 'Y' : 'N' })
+                  if (evt.target.checked) {
+                    r.select()
+                    r.getElement().classList.add('bg-success')
+                  } else {
+                    r.getElement().classList.remove('bg-success')
+                  }
+                })
+
+                groupStyling(group)
+              })
+            })
+          })
+
+        },
+        getRstcYr() {
+          return `만 ${this.bseYr - this.chldIsrAgRstcYr} 세`
+        },
+        validFnm() {
+          return validateName(this.pseFnm)
+        },
+        validRrno(target) {
+
+          if (!target) return validateSsn(this.pseRrno)
+
+          const ssn = target.value
+
+          const rrnoInfo = target.parentElement.nextElementSibling.querySelector('span.rrno-info')
+
+          console.log('validRrno', target, 'rrnoInfo', rrnoInfo, 'ssn', ssn)
+
+          rrnoInfo.innerHTML = ''
+
+          if (ssn.length === 13) {
+            if (validateSsn(ssn)) {
+
+              const { tgrAg, birthday, tgrSxClCd } = calcSsn(ssn, this.bseYr)
+
+              rrnoInfo.innerText = `성별: ${tgrSxClCd === '1' ? '남자' : '여자'}
+            생년월일: ${moment(birthday).format('YYYY년 M월 D일')}
+            보험나이: ${tgrAg}세`
+
+              if (tgrAg < 0) {
+                alert('0세 미만입니다')
+                target.classList.remove('is-valid');
+                target.classList.add('is-invalid');
+
+                rrnoInfo.classList.add('text-danger')
+              }
+
+              if (!target.id.startsWith('child') && tgrAg < 19) {
+                alert('미성년자 입니다')
+                target.classList.remove('is-valid');
+                target.classList.add('is-invalid');
+                rrnoInfo.classList.add('text-danger')
+              } else {
+                target.classList.remove('is-invalid');
+                target.classList.add('is-valid');
+                rrnoInfo.classList.remove('text-danger')
+              }
+
+            } else {
+              target.classList.remove('is-valid');
+              target.classList.add('is-invalid');
+              rrnoInfo.classList.remove('text-danger')
+            }
+          }
+        },
+        goFilter() {
+          this.filtered = !this.filtered;
+
+          if (this.filtered) {
+            this.isrPrdTable.setFilter('selected', '=', true)
+          } else {
+            this.isrPrdTable.clearFilter()
+          }
+
+        },
+        validate() {
+          console.log(this.validFnm(this.pseFnm), this.validRrno(), this.bseYr, this.chldIsrAgRstcYr, this.picker.value, this.picker, (this.validFnm(this.pseFnm), this.validRrno(), this.bseYr, this.chldIsrAgRstcYr, this.picker.value))
+
+          return this.validFnm(this.pseFnm) && this.validRrno() && this.bseYr && this.chldIsrAgRstcYr && this.picker.getStartDate() && this.picker.getEndDate()
+        },
+        validateAndGetFmlInfo() {
+
+          const check = (name, rrno, tel, nameEL, rrnoEL, isrrClCd) => {
+            console.debug('check', name, rrno, tel, nameEL, rrnoEL, isrrClCd)
+
+            if (!validateName(name)) {
+              alert('성명을 바르게 입력해주세요')
+              nameEL.focus();
+              return false;
+            }
+
+            if (!validateSsn(rrno)) {
+              alert('주민번호를 바르게 입력하세요')
+              rrnoEL.classList.remove('is-valid');
+              rrnoEL.classList.add('is-invalid');
+              return false;
+            } else {
+              rrnoEL.classList.remove('is-invalid');
+              rrnoEL.classList.add('is-valid');
+            }
+
+            const { tgrAg, birthday, tgrSxClCd } = calcSsn(rrno, this.bseYr)
+
+            return {
+              isrrClCd,
+              name,
+              tel,
+              rrno,
+              sxClCd: tgrSxClCd,
+              age: tgrAg,
+            }
+          }
+
+          const fmlInfo = []
+
+          console.log(`this.spsUse`, this.spsUse)
+
+          if (this.spsUse) {
+            const sps = check(this.spsName, this.spsRrno, this.spsTel, this.$refs.spsNameEL, this.$refs.spsRrnoEL, '1')
+
+            console.log(`sps`, sps)
+            if (!sps) {
+              return false;
+            }
+
+            sps.isCop = this.spsCop;
+
+            fmlInfo.push(sps);
+
+          }
+
+          for (let i = 1; i < 4; i++) {
+            console.log(`this[child${i}Use]`, this[`child${i}Use`])
+
+            if (this[`child${i}Use`]) {
+              const child = check(this[`child${i}Name`], this[`child${i}Rrno`], this[`child${i}Tel`]
+                , this.$refs[`child${i}NameEL`], this.$refs[`child${i}RrnoEL`], '3')
+
+              if (!child) {
+                return false;
+              }
+
+              fmlInfo.push(child);
+            }
+          }
+
+          console.log('this.fmlInfo', fmlInfo)
+
+          return fmlInfo;
+
+        },
+        viewResult() {
+
+          if (!this.validate()) {
+
+            alert('데이터를 다 입력하세요');
+
+            return '';
+          }
+
+          const fmlInfo = this.validateAndGetFmlInfo();
+
+          if (!fmlInfo) {
+            alert('가족정보를 바르게 입력해주세요');
+            return;
+          }
+
+          const groups = this.isrPrdTable.getGroups()
+          console.log('groups', groups);
+
+          function tableToData(group) {
+            const dtls = group.getRows().filter(d => d.getData().selected).map(d => d.getData())
+
+            if (!dtls || !dtls.length) return;
+
+            console.log('tableToData', dtls[0])
+
+            return ({
+              isrPrdCd: group.getKey(), isrPrdNm: dtls[0].isrPrdNm, essYn: dtls[0].essYn, isrrClCd: dtls[0].isrrClCd, isrrClNm: dtls[0].isrrClNm
+              , dtlCdList: dtls.map(d => ({
+                isrPrdCd: d.isrPrdCd,
+                isrPrdNm: d.isrPrdNm,
+                isrDtlCd: d.isrDtlCd,
+                isrDtlNm: d.isrDtlNm,
+                isrrClCd: d.isrrClCd,
+                isrrClNm: d.isrrClNm,
+                mIsrUprCd: d.mIsrUprCd,
+                mIsrSbcAmt: d.mIsrSbcAmt,
+                mIsrSbcScr: (d.mIsrSbcAmt / 1000).toFixed(2),
+                fIsrUprCd: d.fIsrUprCd,
+                fIsrSbcAmt: d.fIsrSbcAmt,
+                fIsrSbcScr: (d.fIsrSbcAmt / 1000).toFixed(2)
+              }))
+            })
+          }
+
+          this.wlfInst = {
+            wlfInstNm: this.instNm,
+            chldIsrAgRstcYr: this.chldIsrAgRstcYr,
+            bhdSlcBgnDt: this.picker.getStartDate().format('YYYYMMDD'),
+            bhdSlcNdDt: this.picker.getEndDate().format('YYYYMMDD'),
+            isrBgnDt: `${this.bseYr}.01.01`,
+            isrNdDt: `${this.bseYr}.12.31`
+          }
+
+          this.result = {
+            pseInfo: {
+              pseFnm: this.pseFnm,
+              pseRrno: this.pseRrno
+            },
+            wlfInst: this.wlfInst,
+            bseYr: this.bseYr,
+            rtnList: groups.filter(g => {
+              console.log('group', g.getRows().find(d => d.getData().selected))
+              return g.getRows().find(d => d.getData().selected)
+            }).map(tableToData),
+            fmlInfo,
+          }
+
+          this.defalreResult = byteToBase64(pako.deflate(toJson(this.result), { level: 9 }))
+
+          this.makeQr()
+
+        },
+        makeQr() {
+
+          const modalBody = document.querySelector('div.modal-body div.row');
+          modalBody.innerHTML = ''
+
+          const infoDiv = document.createElement('div');
+          infoDiv.classList.add('col', 'info-message')//document.querySelector('.info-message');
+
+          modalBody.append(infoDiv);
+
+          this.params = `bseYr=${this.bseYr}&token=${encodeURIComponent(this.defalreResult)}&wlfInst=${encodeURI(JSON.stringify(this.wlfInst))}`
+
+          console.log('this.params', this.params)
+
+          infoDiv.addEventListener('click', this.go)
+
+          console.log('makeQr', infoDiv, this.link.length, this.link)
+
+          const qrcode = new QRCode(infoDiv, {
+            text: `https://www.gwp.or.kr${this.link}?${this.params}`,
+            width: 500,
+            height: 500,
+            correctLevel: 1,
+          })
+
+          modal.show()
+
+        },
+        groupOnOff(onOff, isrPrdCd) {
+
+          const group = this.isrPrdTable.getGroups().find(g => g.getKey() === isrPrdCd)
+
+          const rows = group.getRows()
+
+          rows.forEach(r => {
+
+            console.dir(r)
+            console.log('r', r.getIndex(), r)
+
+            if (onOff) {
+              r.select()
+            } else {
+              r.deselect()
+            }
+
+          })
+
+          console.groupEnd()
+
+        },
+        /**
+         * @param {number} to 1: web , 2: mobile
+         */
+        go(to) {
+          if (!this.link) return;
+
+          if (to === 1) {
+
+            console.log('go', link)
+
+            window.open(`${this.webLink}?${this.params}`, 'bhdSlcWebTest')
+          } else {
+
+            window.open(`${this.link}?${this.params}`, 'bhdSlcTest')
+          }
+
+        },
+
+
+      }// end return
+    }// end init()
+
+
+
+
+    function getTabulator() {
+
+
+
+      const cellEdited = (cell) => {
+        console.log('cellEdited', cell.getElement(), cell.getElement().classList, cell);
+        cell.getElement().classList.add('bg-danger', 'opacity-75', 'border', 'border-danger')
+      }
+
+      const checkEssYn = (cell) => {
+        return cell.getRow().getData().essYn !== 'Y'
+      }
+
+
+      const groupHeader = (value, count, data, group) => {
+
+        const selected = group.getRows().filter(r => r.isSelected()).length;
+
+        // 다 해제 했을때 스타일링
+        if (selected) {
+          group.getElement().classList.remove('text-decoration-line-through', 'text-muted', 'fst-italic')
+        } else {
+          group.getElement().classList.add('text-decoration-line-through', 'text-muted', 'fst-italic')
+        }
+
+        const textBg = data[0].essYn ? 'text-bg-success' : !selected ? 'text-bg-secondary' : selected === count ? 'text-bg-primary' : 'text-bg-warning';
+
+        return `<span class="form-check form-check-inline form-switch">
+<input type="checkbox" id="useYn-${data[0].isrPrdCd}" class="form-check-input" role="switch" checked
+@change="groupOnOff($el.checked, '${data[0].isrPrdCd}')">
+</span>
+<span name="groupName" class="${textBg} px-2">${data[0].isrPrdNm}</span> <span class="text-secondary">[${value}]</span>
+<input type="checkbox" class="form-check-input form-control-md" name="essYn" id="essYn-${data[0].isrPrdCd}" data-isrPrdCd="${data[0].isrPrdCd}" ${data[0].essYn ? 'checked' : ''}>
+<label for="essYn-${data[0].isrPrdCd}" class="form-check-label"> 필수여부</label>
+<span class="badge opacity-50 ${textBg}" name="groupCount">${count === selected ? count : selected + '/' + count}</span>`
+
+      }
+
+
+      return new Tabulator('#isrPrdTable', {
+        groupBy: 'isrPrdCd',
+        groupHeader,
+        reactiveData: true,
+        rowFormatter: (row) => {
+          if (row.getData().essYn) row.getElement().classList.add('bg-success')
+        },
+        columns: [
+          {
+            formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center",
+            headerSort: false, titleFormatterParams: { rowRange: 'active' },
+            //editable: checkEssYn,
+          },
+          { field: 'isrPrdCd', title: '보험코드' },
+          { field: 'isrPrdNm', title: '보험명' },
+          { field: 'isrrClCd', title: '대상코드' },// visible: false},
+          { field: 'isrrClNm', title: '대상' },
+          { field: 'essYn', title: '필수여부', formatter: 'tickCross', hozAlign: 'center', mutator: (value) => value === 'Y', cellEdited: cellEdited },
+          { field: 'isrDtlCd', title: '상세코드' },
+          { field: 'isrDtlNm', title: '상세명', cssClass: 'fw-bold' },
+          {
+            field: 'mIsrSbcAmt', title: '남자가격', hozAlign: 'right', formatter: 'money', formatterParams: { precision: false }
+            , editor: 'number', editorParams: { min: 0, step: 100 }, cellEdited: cellEdited
+          },
+          {
+            field: 'fIsrSbcAmt', title: '여자가격', hozAlign: 'right', formatter: 'money', formatterParams: { precision: false }
+            , editor: 'number', editorParams: { min: 0, step: 100 }, cellEdited: cellEdited
+          },
+          { field: 'selected', visible: false },
+        ],
+        data: allIsrPrd.map(d => ({
+          isrPrdCd: d.isrPrdCd,
+          isrPrdNm: d.isrPrdNm,
+          isrDtlCd: d.isrDtlCd,
+          isrDtlNm: d.isrDtlNm,
+          isrrClCd: d.isrrClCd,
+          isrrClNm: d.isrrClNm,
+          essYn: d.essYn,
+          mIsrUprCd: d.mIsrUprCd,
+          mIsrSbcAmt: d.mIsrSbcAmt,
+          mIsrSbcScr: d.mIsrSbcScr,
+          fIsrUprCd: d.fIsrUprCd,
+          fIsrSbcAmt: d.fIsrSbcAmt,
+          fIsrSbcScr: d.fIsrSbcScr,
+        })).sort((a, b) => parseInt(a.isrrClCd) - parseInt(b.isrrClCd)
+          || ((a.essYn < b.essYn) ? 1 : (a.essYn > b.essYn) ? -1 : 0)
+          || ((a.isrPrdCd > b.isrPrdCd) ? 1 : (a.isrPrdCd < b.isrPrdCd) ? -1 : 0)
+          || (a.mIsrSbcAmt - b.mIsrSbcAmt)
+          || ((a.isrDtlCd > b.isrDtlCd) ? 1 : (a.isrDtlCd < b.isrDtlCd) ? -1 : 0)
+        ),
+      })
+    }
+
+
+
+
+  </script>
+</body>
+
+</html>

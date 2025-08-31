@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" data-bs-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="맞춤형복지 보험선택" />
+  <meta name="author" content="공무원연금공단 맞춤형복지" />
+  <title>맞춤형복지 보험선택</title>
+  <meta property="og:title" content="맞춤형복지 보험선택" />
+  <meta property="og:description" content="공무원연금공단 맞춤형복지 보험선택" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.gwp.or.kr" />
+  <meta property="og:image" content="https://www.gwp.or.kr/images/geps_mascot.png" />
+  <link rel="icon" href="https://www.gwp.or.kr/images/coprn/favicon/geps_favicon.png" />
+
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href=" https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css " rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    integrity="sha512-c42qTSw/wPZ3/5LBzD+Bw5f7bSF2oxou6wEb+I/lqeaKV5FDIfMvvRp772y4jcJLKuGUOpbJMdg/BTl50fJYAw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <link rel="stylesheet" href="/js/lib/bot/css/main.css" />
+
+  <style>
+    .info-message {
+      font-size: 1.3em;
+    }
+
+    div.preview image {
+      max-height: 100px;
+    }
+
+    b,
+    strong {
+      font-weight: 600;
+    }
+
+    sup {}
+
+    dfn {}
+
+    abbr {
+      color: var(--bs-primary);
+    }
+
+    blockquote {
+      color: var(--bs-secondary)
+    }
+
+    input {
+      font-family: monospace, monospace;
+    }
+  </style>
+
+</head>
+
+<body x-data="processor">
+
+
+  <header>
+    <div class="container d-flex align-items-center justify-content-between p-3 mb-3 custom-border-bottom">
+      <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+        <img class="logo" src="/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40" style="margin-top: 8px" />
+        <th:block th:if="${bhdSlcChnYn != 'Y'}">
+          <span class="ms-2 fs-4 word-wrap">맞춤형복지 보험선택</span>
+        </th:block>
+        <th:block th:if="${bhdSlcChnYn == 'Y'}">
+          <span class="ms-2 fs-4 word-wrap">맞춤형복지 보험선택 의료비보장 변경</span>
+        </th:block>
+      </a>
+
+      <div>
+        <button class="btn btn-warning" x-ref="restart" :disabled="current<0 && !pseInfo?.validated"
+          @click="init()">처음부터</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="container">
+      <!-- 처음 modal -->
+      <div class="modal fade" tabindex="-1" id="modal">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" x-text="`맞춤형복지 ${bseYr}년도 보험선택`">
+                <img class="logo" src="/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40" />
+              </h5>
+              <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-5">
+                  <img src="/js/lib/bot/img/geps_mascot.png" alt="믿음이와 동행이" width="100%" />
+                </div>
+                <div class="col-7">
+                  <th:block th:if="${bhdSlcChnYn != 'Y'}">
+                    <p x-text="`공무원연금공단 맞춤형복지 ${bseYr}년도 보험선택을 시작합니다.`"></p>
+                    <p>공단 마스코트 믿음이의 안내에 따라 희망하는 상품을 선택해주시면 됩니다.</p>
+                    <p>감사합니다.</p>
+                  </th:block>
+                  <th:block th:if="${bhdSlcChnYn == 'Y'}">
+                    <p x-text="`공무원연금공단 맞춤형복지 ${bseYr}년도 보험선택 의료비보장 변경을 시작합니다.`"></p>
+                    <p>의료비보장 변경 기간입니다.</p>
+                    <p>공단 마스코트 믿음이의 안내에 따라 희망하는 상품을 선택해주시면 됩니다.</p>
+                    <p>감사합니다.</p>
+                  </th:block>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-md btn-primary w-25" data-bs-dismiss="modal" :disabled="current === -2">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true" x-show="current === -2"></span>
+                <span role="status" x-text="current === -2?'데이터를 가져오고있습니다':'확인'"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!--// modal -->
+
+      <!-- alert와 confirm을 위한 modal -->
+      <div class="modal fade" tabindex="-1" x-ref="infoModal">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title"></h4>
+              <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col info-message"></div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-md btn-primary w-25" data-bs-dismiss="modal">확인</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!--// modal -->
+
+      <div class="card">
+        <div class="card-header" style="z-index: 1030">
+          <nav style="--bs-breadcrumb-divider: '>'" aria-label="breadcrumb">
+            <ol class="breadcrumb" x-ref="breadcrumb" x-html="breadbcrumb()"></ol>
+          </nav>
+        </div>
+        <div class="card-body" id="messages" x-ref="messages"></div>
+      </div>
+    </div>
+  </main>
+  <footer class="py-3">
+    <div class="container custom-border-top pt-3 text-muted">
+      (63568)제주특별자치도 서귀포시 서호중앙로 63(서호동)<br />
+      Copyright(c) GEPS. All Right Reserved.
+    </div>
+  </footer>
+
+  <!-- offcanvas 유의사항-->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasInfo" data-interval="2000"
+    aria-labelledby="offcanvasLabel">
+    <div class="offcanvas-header bg-primary-subtle">
+      <h5 class="offcanvas-title" id="offcanvasLabel"></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="확인"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div id="offcanvasContent"></div>
+    </div>
+    <div class="text-end me-4 mb-4" id="offcanvas-close-div">
+      <button type="button" data-bs-dismiss="offcanvas" class="btn btn-lg btn-primary px-5"
+        @click="doNoticeAgree($el.dataset.isrPrdCd)">확인</button>
+    </div>
+  </div>
+
+  <!-- offcanvas-->
+
+  <!-- offcanvas 개인정보 제공동의-->
+  <div class="offcanvas offcanvas-bottom vh-100" id="offcanvasPrivacy" tabindex="-1"
+    aria-labelledby="offcanvasPrivacyLabel" data-bs-animation="1000">
+    <div class="offcanvas-header bg-primary-subtle">
+      <h5 class="offcanvas-title" id="offcanvasPrivacyLabel"></h5>
+    </div>
+    <div class="offcanvas-body">
+      <div id="offcanvasPrivacyContent"></div>
+    </div>
+  </div>
+
+  <!-- offcanvas-->
+
+
+</body>
+
+<script type="module">
+
+  import * as bootstrap from 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/+esm'
+  import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/+esm'
+
+  import moment from 'https://cdn.jsdelivr.net/npm/moment@2.30.1/+esm'
+  import 'https://cdn.jsdelivr.net/npm/moment@2.30.1/locale/ko/+esm'
+
+  window.moment = moment
+  moment.locale('ko');
+
+
+
+  // import Alpine from '../../../../js/lib/alpinejs/alpinejs.3.14.1.esm.js'
+  import { processor } from '/js/lib/bot/js/script.js'
+
+  //window.Alpine = Alpine
+
+  const now = new Date();
+
+  // 서버시간과 60분이상 차이난다면
+  if (Math.abs(now - new Date().getTime()) > 3600000) {
+    alert(`컴퓨터 시간을 확인해주세요
+
+서버 시간: ${new Date(now).toLocaleString()}
+컴퓨터 시간: ${new Date().toLocaleString()}`)
+  }
+
+  Alpine.data('processor', processor)
+  Alpine.start()
+
+
+  // 채팅창에 내용이 바뀌었을때 화면을 밑으로 스크롤 시키는 옵저버
+
+  const observer = new MutationObserver(mutations => {
+    //console.log('observer trigger', mutations)
+    scrollDown()
+  })
+
+  observer.observe(document.querySelector('#messages'), {
+    childList: true,
+    subtree: false,
+    characterData: false,
+  })
+
+  /**
+   * 채팅창을 제일 밑으로 스크롤
+   */
+  function scrollDown() {
+
+    const container = document.querySelector('main .container');
+    const lastChild = document.querySelector('.card-body>div:last-child');
+
+    lastChild.onload = (evt) => console.log('lastChild loaded', lastChild.clientHeight)
+
+    const breadCrubmsEl = document.querySelector('.card-header');
+
+    if (lastChild) {
+
+      const media = lastChild.querySelector('div.flex-shrink-1 img') || lastChild.querySelector('div.flex-shrink-1 embed')
+
+      if (media) {
+        media.onload = (evt) => {
+          media.scrollIntoView({ block: 'start', behavior: 'smooth' })
+          //container.scrollTo(({: media.offsetTop - media.height, behavior: 'smooth'}));
+        }
+
+      } else {
+        container.scrollTo({ top: lastChild.offsetTop - breadCrubmsEl.clientHeight, behavior: 'smooth' });
+      }
+
+    } else {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+
+  }
+
+</script>
+
+</html>
