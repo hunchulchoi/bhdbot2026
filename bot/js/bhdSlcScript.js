@@ -111,7 +111,7 @@ const SxClCd = Object.freeze({
  *
  */
 export class TgrInfo {
-  
+
   /**
    * @type {string}
    * @private
@@ -122,7 +122,7 @@ export class TgrInfo {
    * @private
    */
   _agrInfo = null;
-  
+
   /**
    * @param params {Object?}
    * @param params.usrFnm {string} - 대상자 성명
@@ -138,9 +138,9 @@ export class TgrInfo {
    * @param params.files {File?} - 업로드 증빙파일
    * @param params.bhdSlcSeq {number?} - 보험 선택 순번
    */
-  constructor({usrFnm, rrno, wlfInstCd, instNm
-                , sxClCd, age, isrrClCd, updFleNo
-                , cellPhoneNo, agrInfo, files, bhdSlcSeq}) {
+  constructor({ usrFnm, rrno, wlfInstCd, instNm
+    , sxClCd, age, isrrClCd, updFleNo
+    , cellPhoneNo, agrInfo, files, bhdSlcSeq }) {
     this.usrFnm = usrFnm;
     this.rrno = rrno;
     this.wlfInstCd = wlfInstCd;
@@ -158,34 +158,37 @@ export class TgrInfo {
     this.cellPhoneNo = cellPhoneNo;
     this._tempId = window.crypto.randomUUID();
   }
-  
-  set cellPhoneNo(cellPhoneNo){
-    if(!this._agrInfo){
-      this._agrInfo = new AgrInfo({decTgrTelNo: cellPhoneNo})
-    }else{
-      if(this.isAgreeDone()){
+
+  set cellPhoneNo(cellPhoneNo) {
+
+    console.debug('set cellPhoneNo', cellPhoneNo, this._agrInfo)
+
+    if (!this._agrInfo) {
+      this._agrInfo = new AgrInfo({ decTgrTelNo: cellPhoneNo })
+    } else {
+      if (this.isAgreeDone()) {
         console.error('이미 동의 되어 있음', this.agrInfo, cellPhoneNo)
       }
       this._agrInfo.tgrTelNo = cellPhoneNo;
     }
   }
-  
-  get cellPhoneNo(){
+
+  get cellPhoneNo() {
     return this._agrInfo?.tgrTelNo;
   }
-  
+
   get tempId() {
     return this._tempId;
   }
-  
+
   /**
    * 동의 완료 되었는지
    * @return {boolean}
    */
-  isAgreeDone(){
+  isAgreeDone() {
     return this._agrInfo?.agrStsCd === AgrStsCd.동의;
   }
-  
+
 }
 
 
@@ -194,8 +197,8 @@ export class TgrInfo {
  * @property agrNo {string}
  * @property token {string}
  * @property tgrFnm {string}
- * @property decTgrRrno {string}
- * @property decTgrTelNo {string}
+ * @property tgrRrno {string}
+ * @property tgrTelNo {string}
  * @property agrClCd {'BHD'}
  * @property agrStsCd {agrStsCd}
  * @property agrStsCdNm {string}
@@ -206,23 +209,23 @@ export class TgrInfo {
 export class AgrInfo {
 
   /**
-   * @typedef AgrInfoData
-   * @type agrNo {string}
-   * @type token {string}
-   * @type tgrFnm {string}
-   * @type decTgrRrno {string}
-   * @type decTgrTelNo {string}
-   * @type agrClCd {'BHD'}
-   * @type agrStsCd {agrStsCd}
-   * @type agrStsCdNm {string}
-   * @type agrDttm {string}
-   * @type smsTrsmSqn {number} - 문자전송 횟수
-   * @type smsFnlDttm {Date} - 최종 발송 시각
+   * @param {Object} param
+   * @param param.agrNo {string?}
+   * @param param.token {string?}
+   * @param param.tgrFnm {string?}
+   * @param param.decTgrRrno {string?}
+   * @param param.decTgrTelNo {string}
+   * @param [param.agrClCd='BHD'] {string}
+   * @param param.agrStsCd {AgrStsCd?}
+   * @param param.agrStsCdNm {string?}
+   * @param param.agrDttm {string?}
+   * @param param.smsTrsmSqn {number?} - 문자전송 횟수
+   * @param param.smsFnlDttm {Date?} - 최종 발송 시각
    */
   constructor({
-                agrNo, token, tgrFnm, decTgrRrno, decTgrTelNo, agrClCd, agrStsCd
-                , agrStsCdNm, agrDttm, smsTrsmSqn, smsFnlDttm,
-              }) {
+    agrNo, token, tgrFnm, decTgrRrno, decTgrTelNo, agrClCd, agrStsCd
+    , agrStsCdNm, agrDttm, smsTrsmSqn, smsFnlDttm,
+  }) {
     this.agrNo = agrNo;
     this.token = token;
     this.tgrFnm = tgrFnm;
@@ -241,32 +244,36 @@ export class AgrInfo {
  * @class {IsrPrd} - 선택한 보험
  */
 export class IsrPrd {
-  
+
   /**
    *
    * @type {IsrPrdDtlData}
    */
-  #isrPrdDtlData = null;
+  _isrPrdDtlData = null;
   /**
    *
    * @type {TgrInfo}
    */
-  #tgrInfo = null;
+  _tgrInfo = null;
 
   /**
    *
    * @param isrPrdDtlData {IsrPrdDtlData} - 보험 상품 상세 정보
    * @param tgrInfo {TgrInfo?} - 대상자
+   * @param [unregister=true] {boolean} - 가입 여부(미가입 상품인 경우 false)
    */
-  constructor(isrPrdDtlData, tgrInfo) {
-  
-console.debug('IsrPrd data', isrPrdDtlData, 'tgrInfo', tgrInfo)
-    
-    this.#isrPrdDtlData = isrPrdDtlData
-    this.#tgrInfo = tgrInfo;
+  constructor(isrPrdDtlData, tgrInfo, register = true) {
+
+    console.debug('IsrPrd data', isrPrdDtlData, 'tgrInfo', tgrInfo)
+
+    this._isrPrdDtlData = isrPrdDtlData
+    this._tgrInfo = tgrInfo;
+    this.useYn = register
+
+
     this.selectedTime = new Date().getTime();
-    
-    
+
+
     /*
     this.isrPrdCd = isrPrdDtlData.isrPrdCd;
     this.isrPrdNm = isrPrdDtlData.isrPrdNm;
@@ -285,8 +292,8 @@ console.debug('IsrPrd data', isrPrdDtlData, 'tgrInfo', tgrInfo)
     this.fIsrUprCd = isrPrdDtlData.fIsrUprCd;
     this.fIsrSbcAmt = isrPrdDtlData.fIsrSbcAmt;
     this.fIsrSbcScr = isrPrdDtlData.fIsrSbcScr;*/
-    
-    
+
+
     /*this.tgrFnm = tgrInfo.usrFnm;
     this.tgrRrno = tgrInfo.usrFnm;
     this.tgrAg = tgrInfo.age
@@ -296,39 +303,69 @@ console.debug('IsrPrd data', isrPrdDtlData, 'tgrInfo', tgrInfo)
     this.isrSbcAmt = tgrInfo.sxClCd && tgrInfo.sxClCd === '1' ? isrPrdDtlData.mIsrSbcAmt : isrPrdDtlData.fIsrSbcAmt;
     this.isrSbcScr = tgrInfo.sxClCd && tgrInfo.sxClCd === '1' ? isrPrdDtlData.mIsrSbcScr : isrPrdDtlData.fIsrSbcScr;
     */
-    
+
   }
-  
-  get isrUprCd(){
-    if(!this.#tgrInfo || !this.#tgrInfo.sxClCd ) return null;
-    
-    if(this.#tgrInfo.sxClCd === SxClCd.남){
-      return this.#isrPrdDtlData.mIsrUprCd
+
+  get isrDtlNm() {
+    return this._isrPrdDtlData.isrDtlNm
+  }
+
+  get tgrFnm() {
+    return this._tgrInfo.usrFnm
+  }
+
+  get tgrRrno() {
+    return this._tgrInfo.rrno
+  }
+
+  get tgrSxClcd() {
+    return this._tgrInfo.sxClCd
+  }
+
+  get agrInfo() {
+    return this._tgrInfo.agrInfo
+  }
+
+
+
+  get isrDtlCd() {
+    return this._isrPrdDtlData.isrDtlCd
+  }
+
+  get isrrClCd() {
+    return this._isrPrdDtlData.isrrClCd
+  }
+
+  get isrUprCd() {
+    if (!this._tgrInfo || !this._tgrInfo.sxClCd) return null;
+
+    if (this._tgrInfo.sxClCd === SxClCd.남) {
+      return this._isrPrdDtlData.mIsrUprCd
     }
-    
-    return this.#isrPrdDtlData.fIsrUprCd
+
+    return this._isrPrdDtlData.fIsrUprCd
   }
-  
-  get isrSbcAmt(){
-    if(!this.#tgrInfo || !this.#tgrInfo.sxClCd ) return -1;
-    
-    if(this.#tgrInfo.sxClCd === SxClCd.남){
-      return this.#isrPrdDtlData.mIsrSbcAmt;
+
+  get isrSbcAmt() {
+    if (!this._tgrInfo || !this._tgrInfo.sxClCd) return -1;
+
+    if (this._tgrInfo.sxClCd === SxClCd.남) {
+      return this._isrPrdDtlData.mIsrSbcAmt;
     }
-    
-    return this.#isrPrdDtlData.fIsrSbcAmt;
+
+    return this._isrPrdDtlData.fIsrSbcAmt;
   }
-  
-  get isrSbcScr(){
-    if(!this.#tgrInfo || !this.#tgrInfo.sxClCd ) return -1;
-    
-    if(this.#tgrInfo.sxClCd === SxClCd.남){
-      return this.#isrPrdDtlData.mIsrSbcScr;
+
+  get isrSbcScr() {
+    if (!this._tgrInfo || !this._tgrInfo.sxClCd) return -1;
+
+    if (this._tgrInfo.sxClCd === SxClCd.남) {
+      return this._isrPrdDtlData.mIsrSbcScr;
     }
-    
-    return this.#isrPrdDtlData.fIsrSbcScr;
+
+    return this._isrPrdDtlData.fIsrSbcScr;
   }
-  
+
 }
 
 
@@ -403,13 +440,13 @@ export class StoredData {
     console.log('this.#stored', this.stored)
   }
 
-  get stored(){
+  get stored() {
     return this.stored;
   }
 
-  set pseSsn(ssn){
+  set pseSsn(ssn) {
 
-    Object.values(this.stored).filter(s=>s.isrrClCd === '0' && s.tgrRrno).forEach(s=>s.tgrRrno = ssn)
+    Object.values(this.stored).filter(s => s.isrrClCd === '0' && s.tgrRrno).forEach(s => s.tgrRrno = ssn)
   }
 
   /**
@@ -420,50 +457,50 @@ export class StoredData {
    * @param decode {function} - 주민번호 decode 함수
    * @return {boolean}
    */
-  checkChanged(selected, decode){
+  checkChanged(selected, decode) {
 
     console.log('checkChanged', selected, 'this.stored', this.stored)
 
-    if(!selected || !Object.keys(selected).length) return false;
-    
-    if(!this.stored || !Object.keys(this.stored).length) return true;
+    if (!selected || !Object.keys(selected).length) return false;
+
+    if (!this.stored || !Object.keys(this.stored).length) return true;
 
     const flatStored = Object.values(this.stored).flat();
 
-    flatStored.forEach(f=>f.tgrRrno = decode(f.tgrRrno))
+    flatStored.forEach(f => f.tgrRrno = decode(f.tgrRrno))
 
     const flatSelected = Object.values(selected).flat();
 
-    if(flatStored.length !== flatSelected.length) return true;
+    if (flatStored.length !== flatSelected.length) return true;
 
     //if(flatSelected.find(s=>s.files && s.files.length)) return true;
 
-    const found1 = flatSelected.filter(f=>!flatStored.find(b=> {
+    const found1 = flatSelected.filter(f => !flatStored.find(b => {
 
       return f.isrPrdCd === b.isrPrdCd
         && f.isrDtlCd === b.isrDtlCd
-        &&  f.isrUprCd === b.isrUprCd
-        &&  f.tgrFnm === b.tgrFnm
-        &&  f.tgrRrno ===  b.tgrRrno
+        && f.isrUprCd === b.isrUprCd
+        && f.tgrFnm === b.tgrFnm
+        && f.tgrRrno === b.tgrRrno
     }));
 
     console.log('found1', found1)
 
-    if(found1 && found1.length) return true;
+    if (found1 && found1.length) return true;
 
-    const found2 = flatStored.filter(f=> !flatSelected.find(b=> {
+    const found2 = flatStored.filter(f => !flatSelected.find(b => {
 
-      if(f.isrPrdCd === b.isrPrdCd) console.log('found2', f.isrPrdCd, b.isrPrdCd, f.isrDtlCd, b.isrDtlCd,  f.isrUprCd, b.isrUprCd, f.tgrFnm, b.tgrFnm, f.tgrRrno, b.tgrRrno)
+      if (f.isrPrdCd === b.isrPrdCd) console.log('found2', f.isrPrdCd, b.isrPrdCd, f.isrDtlCd, b.isrDtlCd, f.isrUprCd, b.isrUprCd, f.tgrFnm, b.tgrFnm, f.tgrRrno, b.tgrRrno)
 
       return !f.isrDtlCd
         || (b.isrDtlCd === f.isrDtlCd
-          &&  f.isrUprCd === b.isrUprCd
-          &&  f.tgrFnm === b.tgrFnm
-          &&  f.tgrRrno === b.tgrRrno)
+          && f.isrUprCd === b.isrUprCd
+          && f.tgrFnm === b.tgrFnm
+          && f.tgrRrno === b.tgrRrno)
     }));
     console.log('found2', found2)
 
-    if(found2 && found2.length) return true;
+    if (found2 && found2.length) return true;
 
     return false;
 
@@ -480,46 +517,46 @@ export class StoredData {
  * @param {string[]} [otheRrnos=[]] - 다른 주민번호
  * @return {Checked}
  */
-export const validateChildSsn = (childInfo, pseInfo, bseYr, chldIsrAgRstcYr , otheRrnos= []) =>{
+export const validateChildSsn = (childInfo, pseInfo, bseYr, chldIsrAgRstcYr, otheRrnos = []) => {
 
-console.debug('childInfo', childInfo)
-  
-  if(!childInfo.rrno) return {valid:false, message: '주민번호를 입력하세요'}
+  console.debug('childInfo', childInfo)
+
+  if (!childInfo.rrno) return { valid: false, message: '주민번호를 입력하세요' }
 
   if (childInfo.rrno.length !== 13 || !nxtUtil.validateSsn(childInfo.rrno)) {
-    return {valid: false, message: '올바른 주민번호 형식이 아닙니다.'}
+    return { valid: false, message: '올바른 주민번호 형식이 아닙니다.' }
   }
 
 
   if (childInfo.rrno === pseInfo.rrno) {
-    return {valid: false, message: '자녀와 주민번호가 동일합니다.'}
+    return { valid: false, message: '자녀와 주민번호가 동일합니다.' }
   }
 
-  if(otheRrnos.includes(childInfo.rrno)){
-    return {valid: false, message: '이미 등록되어 있는 주민번호 입니다.'}
+  if (otheRrnos.includes(childInfo.rrno)) {
+    return { valid: false, message: '이미 등록되어 있는 주민번호 입니다.' }
   }
 
   const ageObj = calcSsn(childInfo.rrno, bseYr, true);
 
   if (ageObj.tgrAg < 0) {
-    return {valid: false, message: '자녀의 나이가 0세 미만 입니다.'};
+    return { valid: false, message: '자녀의 나이가 0세 미만 입니다.' };
   }
 
   if (ageObj.tgrAg >= pseInfo.age) {
-    return {valid: false, message: '자녀의 나이가 부모의 나이 보다 많습니다.'};
+    return { valid: false, message: '자녀의 나이가 부모의 나이 보다 많습니다.' };
   }
 
   // 19세 이상
-  if(ageObj.bornYear < parseInt(chldIsrAgRstcYr) && !childInfo.updFleNo){
+  if (ageObj.bornYear < parseInt(chldIsrAgRstcYr) && (!childInfo.updFleNo && !childInfo.files)) {
     ageObj.over19 = true;
   }
 
   // 14세 이상
-  if(ageObj.tgrAg >= 14 && !childInfo.cellPhoneNo){
+  if (ageObj.tgrAg >= 14 && !childInfo.cellPhoneNo) {
     ageObj.over14 = true;
   }
 
-  return {valid: !ageObj.over19 && !ageObj.over14, data: ageObj};
+  return { valid: !ageObj.over19 && !ageObj.over14, data: ageObj };
 
 }
 
@@ -529,21 +566,21 @@ console.debug('childInfo', childInfo)
  * @param [otherNames=[]] {string[]?}
  * @return {Checked}
  */
-export const validateName = (name, otherNames = [])=>{
+export const validateName = (name, otherNames = []) => {
 
-console.debug('validateName', name, 'otherNames', otherNames )
+  console.debug('validateName', name, 'otherNames', otherNames)
 
-  if(!name) return {valid:false, message: '성명을 입력해 주세요'}
+  if (!name) return { valid: false, message: '성명을 입력해 주세요' }
 
-  if(!nxtUtil.validateName(name)){
-    return {valid: false, message: '성명을 확인해 주세요.성명은 영문 한글 공백만 가능합니다.'}
+  if (!nxtUtil.validateName(name)) {
+    return { valid: false, message: '성명을 확인해 주세요.성명은 영문 한글 공백만 가능합니다.' }
   }
 
-  if(otherNames.find(o=>o === name)){
-    return {valid: false, message: '이미 등록되어 있는 성명입니다.'}
+  if (otherNames.find(o => o === name)) {
+    return { valid: false, message: '이미 등록되어 있는 성명입니다.' }
   }
 
-  return {valid: true}
+  return { valid: true }
 
 }
 
@@ -558,22 +595,22 @@ console.debug('validateName', name, 'otherNames', otherNames )
  * @param childInfo {TgrInfo[]?} - 자녀 정보
  * @return {Checked}
  */
-export const validateSpsName = (name, validated, pseInfo,  childInfo) =>{
+export const validateSpsName = (name, validated, pseInfo, childInfo) => {
 
-  if(!name){
-    return {valid: false, message: '배우자의 성명을 입력해주세요'}
+  if (!name) {
+    return { valid: false, message: '배우자의 성명을 입력해주세요' }
   }
 
-  const checked = validateName(name, childInfo?.filter(c=>c.validated).map(c=>c.usrFnm));
+  const checked = validateName(name, childInfo?.filter(c => c.validated).map(c => c.usrFnm));
 
-  if(!checked.valid){
+  if (!checked.valid) {
     return checked;
   }
 
   // 부부가 성명이 동일한 경우
   // validated가 true면 이미 동의했다고 생각해서 더이상 물어보지 말자
-  if(!validated && name === pseInfo.usrFnm){
-    return {valid: false, data: {sameName: true} }
+  if (!validated && name === pseInfo.usrFnm) {
+    return { valid: false, data: { sameName: true } }
   }
 
   return checked;
@@ -588,34 +625,34 @@ export const validateSpsName = (name, validated, pseInfo,  childInfo) =>{
  * @param childInfo {TgrInfo[]?} - 자녀 정보
  * @return {Checked}
  */
-export const validateSpsSsn = (rrno, pseInfo, bseYr, childInfo) =>{
+export const validateSpsSsn = (rrno, pseInfo, bseYr, childInfo) => {
 
-console.debug('validateSpsSsn', 'spsInfo', rrno,  'rrno.length', rrno.length, 'pseInfo',   pseInfo, 'bseYr', bseYr, 'childInfo', childInfo)
+  console.debug('validateSpsSsn', 'spsInfo', rrno, 'rrno.length', rrno.length, 'pseInfo', pseInfo, 'bseYr', bseYr, 'childInfo', childInfo)
 
-  if(!rrno || rrno.length !== 13) return {valid: false, message: '올바른 주민번호가 아닙니다.'}
+  if (!rrno || rrno.length !== 13) return { valid: false, message: '올바른 주민번호가 아닙니다.' }
 
   // 주민번호 형식 체크
   if (!nxtUtil.validateSsn(rrno)) {
-    return {valid: false, message: '올바른 주민번호가 아닙니다.'}
+    return { valid: false, message: '올바른 주민번호가 아닙니다.' }
   }
 
-    if (rrno === pseInfo.rrno) {
-      return {valid: false, message: '배우자의 주민번호가 동일합니다.'}
-    }
+  if (rrno === pseInfo.rrno) {
+    return { valid: false, message: '배우자의 주민번호가 동일합니다.' }
+  }
 
-    if(!bseYr) bseYr = new Date().getFullYear().toString();
+  if (!bseYr) bseYr = new Date().getFullYear().toString();
 
-    const {bornYear, tgrSxClCd, tgrAg, birthday} = calcSsn(rrno, bseYr);
+  const { bornYear, tgrSxClCd, tgrAg, birthday } = calcSsn(rrno, bseYr);
 
-console.debug('calcssn', tgrSxClCd, tgrAg);
-    if (tgrSxClCd === pseInfo.sxClCd) {
-      return {valid: false, message: '배우자의 성별이 동일합니다.'}
-    }
-    if (tgrAg < 18) {
-      return {valid: false, message: '배우자의 주민번호가 미성년자입니다.'}
-    }
+  console.debug('calcssn', tgrSxClCd, tgrAg);
+  if (tgrSxClCd === pseInfo.sxClCd) {
+    return { valid: false, message: '배우자의 성별이 동일합니다.' }
+  }
+  if (tgrAg < 18) {
+    return { valid: false, message: '배우자의 주민번호가 미성년자입니다.' }
+  }
 
-    return {valid: true, data: {bornYear, tgrSxClCd, tgrAg, birthday} }
+  return { valid: true, data: { bornYear, tgrSxClCd, tgrAg, birthday } }
 
 }
 
@@ -627,21 +664,21 @@ console.debug('calcssn', tgrSxClCd, tgrAg);
  * @param childInfo {TgrInfo[]?} - 자녀 정보
  * @return {Checked}
  */
-export const validateSps = (spsInfo, pseInfo, bseYr, childInfo) =>{
+export const validateSps = (spsInfo, pseInfo, bseYr, childInfo) => {
 
   const checkName = validateSpsName(spsInfo.usrFnm, spsInfo.validatedName, pseInfo, childInfo);
 
-  if(!checkName.valid) return checkName;
+  if (!checkName.valid) return checkName;
 
   const checkRrno = validateSpsSsn(spsInfo.rrno, pseInfo, bseYr, childInfo);
 
-  if(!checkRrno.valid) return checkRrno;
+  if (!checkRrno.valid) return checkRrno;
 
-  if(!spsInfo.cellPhoneNo || !nxtUtil.validateMobileNum(spsInfo.cellPhoneNo)){
-    return {valid: false, data:{needCellphone: true}, message: '휴대폰 번호를 확인해 주세요' };
+  if (!spsInfo.cellPhoneNo || !nxtUtil.validateMobileNum(spsInfo.cellPhoneNo)) {
+    return { valid: false, data: { needCellphone: true }, message: '휴대폰 번호를 확인해 주세요' };
   }
 
-  return {valid: true}
+  return { valid: true }
 
 }
 
@@ -652,26 +689,26 @@ export const validateSps = (spsInfo, pseInfo, bseYr, childInfo) =>{
  * @param selected {Object} - 선택 상품
  * @param [ignore=false] {boolean} - 미가입 선택
  */
-const selectIsrPrd = (isrPrdDtlData, tgrInfo, selected, ignore=false)=>{
-  
-  const select = new IsrPrd(isrPrdDtlData, )
-  
+const selectIsrPrd = (isrPrdDtlData, tgrInfo, selected, ignore = false) => {
+
+  const select = new IsrPrd(isrPrdDtlData,)
+
   // 이미 보험이 선택 되어 있다면
-  if(selected[isrPrdDtlData.isrPrdCd]){
-    
-    
+  if (selected[isrPrdDtlData.isrPrdCd]) {
+
+
     selected.push()
-  }else{
-    
-    if(isrPrdDtlData.isrrClCd === IsrrClCd.자녀){
-      
-      selected.push([new IsrPrd(isrPrdDtlData, )])
-    }else{
-    
+  } else {
+
+    if (isrPrdDtlData.isrrClCd === IsrrClCd.자녀) {
+
+      selected.push([new IsrPrd(isrPrdDtlData,)])
+    } else {
+
     }
   }
-  
-  
+
+
 }
 
 
@@ -680,19 +717,19 @@ const selectIsrPrd = (isrPrdDtlData, tgrInfo, selected, ignore=false)=>{
  * @param tgrInfo
  * @param selected
  */
-const deleteIsrPrd = (tgrInfo, selected)=>{
-  if(selected && tgrInfo.rrno){
-    Object.entries(selected).forEach(([key,value]) => {
-      if(Array.isArray(value)){
-        if(value[0].isrrClCd === tgrInfo.isrrClCd){
-          value.forEach((v, i)=>{
-            if(v.tgrRrno === tgrInfo.rrno){
-              value.splice(i,1);
+const deleteIsrPrd = (tgrInfo, selected) => {
+  if (selected && tgrInfo.rrno) {
+    Object.entries(selected).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value[0].isrrClCd === tgrInfo.isrrClCd) {
+          value.forEach((v, i) => {
+            if (v.tgrRrno === tgrInfo.rrno) {
+              value.splice(i, 1);
             }
           })
         }
-      }else{
-        if(value.isrrClCd === tgrInfo.isrrClCd && value.tgrRrno === tgrInfo.rrno){
+      } else {
+        if (value.isrrClCd === tgrInfo.isrrClCd && value.tgrRrno === tgrInfo.rrno) {
           delete this.selected[key]
         }
       }
@@ -701,16 +738,16 @@ const deleteIsrPrd = (tgrInfo, selected)=>{
 }
 
 
-export const deleteChildInfo = (childId, childInfo, selected) =>{
-  
-  const _child = childInfo.find(c=> c.tempId === childId);
-  
-  if(!_child) throw new Error('해당 자녀가 없습니다.');
-  
-  if(!_child.rrno){
-  
+export const deleteChildInfo = (childId, childInfo, selected) => {
+
+  const _child = childInfo.find(c => c.tempId === childId);
+
+  if (!_child) throw new Error('해당 자녀가 없습니다.');
+
+  if (!_child.rrno) {
+
   }
-  
+
 }
 
 /**
@@ -718,8 +755,8 @@ export const deleteChildInfo = (childId, childInfo, selected) =>{
  * @param rtnList {Object}
  * @return {IsrPrdData[]}
  */
-export const transformIsrData = (rtnList) =>{
-  
+export const transformIsrData = (rtnList) => {
+
   // 보험상품 sort
   // 1. 보험 대상자 구분
   // 2. 필수 여부
@@ -730,15 +767,15 @@ export const transformIsrData = (rtnList) =>{
     || ((a.isrPrdCd > b.isrPrdCd) ? 1 : (a.isrPrdCd < b.isrPrdCd) ? -1 : 0)
     || (parseInt(this.hashidsHelper.decode(a.tgrRrno)) - parseInt(this.hashidsHelper.decode(b.tgrRrno)))
   )
-  
+
   // 보험 상품 데이터  가공
   // essYn: Y/N => boolean
   rtnList.forEach(r => {
-    
-    if(typeof r.essYn === 'string'){
-      r.essYn =  r.essYn === 'Y'
+
+    if (typeof r.essYn === 'string') {
+      r.essYn = r.essYn === 'Y'
     }
-    
+
     // 보험 상품 상세 데이터 가공
     // essYn 추가
     // olfDndIvgYn 추가
@@ -746,16 +783,16 @@ export const transformIsrData = (rtnList) =>{
       d.essYn = r.essYn
       d.olfDndIvgYn = r.olfDndIvgYn
     })
-    
+
     // 보험 상품 상세 데이터 sort
     // 1. 가격
     // 2. 상품 상세 코드
     r.dtlCdList.sort((a, b) => (a.mIsrSbcAmt - b.mIsrSbcAmt)
       || ((a.isrDtlCd > b.isrDtlCd) ? 1 : (a.isrDtlCd < b.isrDtlCd) ? -1 : 0))
   })
-  
+
   return rtnList;
-  
+
 }
 
 

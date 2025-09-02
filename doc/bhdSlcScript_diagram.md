@@ -62,7 +62,7 @@ classDiagram
     +validateSps(TgrInfo, TgrInfo, ...) : Checked
   }
 
-  ' --- Relationships ---
+
   TgrInfo "1" o-- "0..1" AgrInfo : contains
   StoredData "1" o-- "*" IsrPrd : stores
   IsrPrd ..> IsrPrdData : uses

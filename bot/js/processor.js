@@ -1,10 +1,10 @@
 /*import {notice, privacyNotice} from "../info/info.mjs";*/
 
-import {notice, privacyNotice, ask} from "../info/info.js";
-import {alertMessage, chat, confirmMessage, customConfirmMessage, Question} from "./chat.js";
+import { notice, privacyNotice, ask } from "../info/info.js";
+import { alertMessage, chat, confirmMessage, customConfirmMessage, Question } from "./chat.js";
 
-let {unboxingToken} = await import('./script_test.js')
-let {__validateUser, __confirmPrivacy} = await import('./web_script.js')
+let { unboxingToken } = await import('./script_test.js')
+let { __validateUser, __confirmPrivacy } = await import('./web_script.js')
 
 
 import nxtUtil from "../../js/nxt/nxtUtil.esm.js";
@@ -43,7 +43,7 @@ export function processor() {
      * @type {boolean} - 의료보험 조정 기간인가?
      */
     bhdSlcChnYn: false,
-    
+
     /**
      * @type {StoredData}
      */
@@ -106,6 +106,8 @@ export function processor() {
 
     /**
      * 사용자가 선택한 값
+     * 본인, 배우자는 {...isrPrdCd: IsrPrd} 구조이고
+     * 자녀는 {isrPrdCd: {...tempId: IsrPrd}} 구조임
      * @type {{isrPrdCd: IsrPrd}}
      */
     selected: {},
@@ -114,7 +116,7 @@ export function processor() {
      * 공무원 정보
      * @type TgrInfo
      */
-    pseInfo: {validated: false, confirms: []},
+    pseInfo: { validated: false, confirms: [] },
     /**
      * 배우자 정보
      * @type TgrInfo
@@ -132,24 +134,28 @@ export function processor() {
      * @type {boolean} - 배우자 의료비 보장 말고 다른 배우자 보험에 가입된게 있는지 체크
      */
     spsOtherIsrYn: false,
-    
+
     /**
      *  자녀 정보
      * @type {[TgrInfo]}
      */
     chldInfo: [],
     /**
+     * @type {string?} - 자녀 상품중 첫번째 상품 코드
+     */
+    chldPrdMin: null,
+    /**
      * 자녀 보험 선택 완료 여부
      * @type {boolean}
      */
     childDone: false,
-    
+
     /**
      * @type {boolean} - loading
      */
     isLoading: false,
-    rrnoInputMask: Inputmask({mask: "999999-9999999", keepStatic: true, placeholder: '_', autoUnmask: true}),
-    
+    rrnoInputMask: Inputmask({ mask: "999999-9999999", keepStatic: true, placeholder: '_', autoUnmask: true }),
+
     /**
      * 배정에 있는 가족 정보
      * 배우자 정보와 자녀 정보를 입력하기 위한 정보
@@ -161,9 +167,24 @@ export function processor() {
       popoverClass: 'driverjs-theme',
       overlayOpacity: .2,
     }),
+    /**
+     * @type {boolean} -현재 Modal(bs5.modal, Swal2)이 떠 있는 상태인지 확인한다.
+     */
+    isShownModal: false,
 
     /**
      * 기관 정보
+     * @type {object}
+     * @property {string} bhdSlcBgnDt - 사전선택 시작일 yyyyMMdd
+     * @property {string} bhdSlcNdDt - 사전선택 종료일 yyyyMMdd
+     * @property {string} isrBgnDt - 보험 시작일 yyyy.MM.dd
+     * @property {string} isrNdDt - 보험 종료일 yyyy.MM.dd
+     * @property {string} chldIsrAgRstcYr - 자녀보험연령제한연도 yyyy
+     * @property {string} wlfInstCd - 기관코드
+     * @property {string} wlfInstNm - 기관명
+     * @property {string} oprInstCd - 운영기관코드
+     * @property {string} avgUprUseYn - 평균가입자수사용여부
+     * @property {string} olfDndIvgYn - 외부보험혜택여부
      */
     wlfInst: ({
       /**
@@ -193,6 +214,63 @@ export function processor() {
       avgUprUseYn: null,
       olfDndIvgYn: null,
     }),
+    /**
+     * 보험 상품 비활성화 여부 체크
+     * @param isrPrdData {IsrPrdData}
+     * @param prdIndex {number}
+     * @return {boolean}
+     */
+    isrPrdDisabled(isrPrdData, prdIndex) {
+
+
+      if (!this.stepper || prdIndex > this.stepper?._currentIndex) return true;
+
+      if (isrPrdData.isrrClCd === IsrrClCd.배우자) {
+
+        // 의료비 보장 변경 기간이 아닌데 배우자 상품 중 첫번째 상품이 아닌 경우
+        if (!this.bhdSlcChnYn && isrPrdData.isrPrdCd !== this.spsPrdMin) {
+          // 배우자 이름 입력 안됨
+          if (!this.spsInfo?.usrFnm) return true;
+        }
+
+        // 의료비 보장 변경 기간이면 의료비 보장 관련 보험만 선택 가능
+        if (this.bhdSlcChnYn && !this.checkIL002(isrPrdData.isrPrdCd)) return true;
+      } else if (isrPrdData.isrrClCd === IsrrClCd.자녀) {
+
+        // 의료비 보장 변경 기간이 아닌데 배우자 상품 중 첫번째 상품이 아닌 경우
+        if (!this.bhdSlcChnYn && isrPrdData.isrPrdCd !== this.chldPrdMin) {
+          if (!this.chldInfo || !this.chldInfo.length) return true;
+        }
+
+        // 의료비 보장 변경 기간이면 의료비 보장 관련 보험만 선택 가능
+        if (this.bhdSlcChnYn && !this.checkIL002(isrPrdData.isrPrdCd)) return true;
+
+      }
+
+      return false;
+    },
+    /**
+     * 보험 상품 선택 완료 여부 체크
+     * @param {IsrPrdData} isrPrdData 
+     * @returns {boolean}
+     */
+    isrPrdSelectCompleted(isrPrdData) {
+
+      if (!this.selected[isrPrdData.isrPrdCd]) return false;
+
+      if ([IsrrClCd.배우자, IsrrClCd.본인].includes(this.selected[isrPrdData.isrPrdCd].isrrClCd)) {
+        return true;
+      } else {
+        if (!this.chldInfo?.length) return false;
+
+        return this.chldInfo.find(chld => !this.selected[isrPrdData.isrPrdCd][chld.tempId]) === undefined;
+
+      }
+
+
+    },
+
+
 
     async init() {
 
@@ -201,19 +279,24 @@ export function processor() {
       console.log('init', this.current, this.storedtime);
 
       // loading watch
-      this.$watch('this.isLoading',  value=> {
-          if (value) {
-            JsLoadingOverlay.show({
-              'spinnerIcon': 'timer'
-              , 'spinnerColor': '#0d6efd'
-              , 'offsetY': '-32%'
-              , 'sppinerZIndex': 1000
-              , 'overlayZIndex': 999
-            })
-          } else {
-            JsLoadingOverlay.hide()
-          }
+      this.$watch('this.isLoading', value => {
+        if (value) {
+          JsLoadingOverlay.show({
+            'spinnerIcon': 'timer'
+            , 'spinnerColor': '#0d6efd'
+            , 'offsetY': '-32%'
+            , 'sppinerZIndex': 1000
+            , 'overlayZIndex': 999
+          })
+        } else {
+          JsLoadingOverlay.hide()
+        }
       })
+
+      this.$watch('document.body.classList', value => {
+        this.isShownModal = ['modal-open', 'swal2-shown'].some(c => value.includes(c))
+      })
+
 
       if (this.current >= 0 && Object.values(this.selected).length) {
         const confirm = await confirmMessage('보험선택 초기화', `보험을 처음부터 다시 선택 하시겠습니까?`);
@@ -234,23 +317,23 @@ export function processor() {
         this.testMode = this.token.length > 500
 
         //if (!this.testMode) {
-          this.hashidsHelper = nxtUtil.getHashIdsHelper(this.token);
+        this.hashidsHelper = nxtUtil.getHashIdsHelper(this.token);
         //}
 
         // 최초 모달
-// FIXME
-//this.welcome();
+        // FIXME
+        //this.welcome();
 
         try {
           await this.getIsrData();
 
 
-// FIXME set
-this.pseInfo.validated = true;
-this.current = 5;
-this.setStep(3);
-this.doQuestion()
-return;
+          // FIXME set
+          this.pseInfo.validated = true;
+          this.current = 5;
+          this.setStep(3);
+          this.doQuestion()
+          return;
 
           this.current = -1;
 
@@ -285,52 +368,56 @@ return;
 
     /**
      * 의료비 보장 관련 보험인지 체크
-     * @param isrPrdCd
+     * @param isrPrdCd {string}
      * @return {boolean}
      */
-    checkIL002(isrPrdCd){
+    checkIL002(isrPrdCd) {
       return ['IL0002', 'IL0034', 'IL0035'].includes(isrPrdCd)
     },
-    nextIL002(){
+    /**
+     * 의료비 보장 관련 보험 다음 질문으로 이동
+     * @returns 
+     */
+    nextIL002() {
       const steps = Array.from(document.querySelectorAll('div#prdSelectStepper div.step:not(:disabled):not(.opacity-50)'));
 
-      if(!steps || !steps.length) return;
+      if (!steps || !steps.length) return;
 
       let _active = false;
 
-      for(const step of steps){
+      for (const step of steps) {
 
-        if(_active){
+        if (_active) {
 
           return step.querySelector('button.step-trigger')?.click();
         }
 
-        if(step.classList.contains('active')){
+        if (step.classList.contains('active')) {
           _active = true;
         }
 
       }
 
       // 마지막이 active이면 더이상 진행하지 않음
-      if(!_active) steps[0].querySelector('button.step-trigger')?.click();
+      if (!_active) steps[0].querySelector('button.step-trigger')?.click();
 
     },
     /**
      * 보험 데이터를 질문데이터로 변경
      * @param isrPrdData {IsrPrdData}
      */
-    generateQuestion(isrPrdData){
-      
+    generateQuestion(isrPrdData) {
+
       return new Question({
         'short_title': isrPrdData.isrPrdNm,
         'message': `${isrPrdData.essYn ? '<span class="text-success bi bi-check2-square"> 필수</span>'
           : '<span class="text-primary bi bi-bag-plus"> 선택</span>'}
-<b>${isrPrdData.isrPrdNm}</b> ${isrPrdData.bhdSlcSeq?'보험 선택 내역 입니다.':'보험을 선택해 주세요'}`,
+<b>${isrPrdData.isrPrdNm}</b> ${isrPrdData.bhdSlcSeq ? '보험 선택 내역 입니다.' : '보험을 선택해 주세요'}`,
         'optionFunc': this.makeIsrPrdOption.bind(this),
         'data': isrPrdData
       })
-      
-    
+
+
     },
     /**
      * 보험 정보를 가져옴
@@ -339,28 +426,31 @@ return;
 
       if (this.testMode) {
 
-console.debug('TGRINFO', TgrInfo)
+        console.debug('TGRINFO', TgrInfo)
 
-        const {pseInfo, wlfInst, fmlInfo, spsCop, rtnList} = unboxingToken(this.token, TgrInfo);
+        const { pseInfo, wlfInst, fmlInfo, spsCop, rtnList } = unboxingToken(this.token, TgrInfo);
 
         this.pseInfo = pseInfo;
         this.wlfInst = wlfInst;
         this.fmlInfo = fmlInfo;
-        
-console.debug('rtnList', rtnList)
-        
+
+        console.debug('rtnList', rtnList)
+
         const rtnList1 = transformIsrData(rtnList)
 
         this.questions = rtnList1.map(d => this.generateQuestion(d));
         console.debug('unboxingToken', pseInfo, wlfInst, rtnList1, this.questions)
 
         // 배우자 상품중 첫번째 상품
-        this.spsPrdMin = rtnList1.filter(p=>p.isrrClCd === '1')?.[0]?.isrPrdCd
+        this.spsPrdMin = rtnList1.find(p => p.isrrClCd === '1')?.isrPrdCd
+
+        // 자녀 상품중 첫번째 상품
+        this.chldPrdMin = rtnList1.find(p => p.isrrClCd === '3')?.isrPrdCd
 
         return;
       } // end of testMode
-      
-      
+
+
       const initTime = new Date().getTime();
 
       console.log('this.token', this.token)
@@ -378,14 +468,14 @@ console.debug('rtnList', rtnList)
 
           // 공무원 생명상해 상품
           const il001 = jsn.rtnList.find(d => d.isrPrdCd === "IL0001");
-          
+
           // 이미 보험선택 한 사람인지
           this.dcnYn = il001.bhdSlcSeq > 0
-          
+
           // 공무원 정보가 없고 보험 상품 완료가 아니면
           // 보험 선택 정보에서 공무원 정보를 가져옴
-          if ((!this.pseInfo || !this.pseInfo.validated) && this.dcnYn ){
-            this.pseInfo= new TgrInfo({
+          if ((!this.pseInfo || !this.pseInfo.validated) && this.dcnYn) {
+            this.pseInfo = new TgrInfo({
               usrFnm: il001.pseFnm,
               rrno: il001.pseRrno,
               wlfInstCd: il001.wlfInstCd,
@@ -398,7 +488,7 @@ console.debug('rtnList', rtnList)
 
           // 보험 데이터 가공및 정렬
           const rtnList = transformIsrData(jsn.rtnList)
-          
+
           // 의료비 보장 변경 기간인 경우
           // 배우자 생명상해 가입안했으면 의료비보장 가입 못하도록
           const slcBgnChnDt = moment(`${this.wlfInst.bhdSlcChnBgnDt} ${this.openTime}`, 'YYYYMMDD HH:mm');
@@ -408,10 +498,13 @@ console.debug('rtnList', rtnList)
             this.bhdSlcChnYn = true;
           }
 
-console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
+          console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
 
           // 배우자 상품중 첫번째 상품
-          this.spsPrdMin = rtnList.filter(p=>p.isrrClCd === '1')?.[0]?.isrPrdCd
+          this.spsPrdMin = rtnList.find(p => p.isrrClCd === '1')?.isrPrdCd
+
+          // 자녀 상품중 첫번째 상품
+          this.chldPrdMin = rtnList.find(p => p.isrrClCd === '3')?.isrPrdCd
 
           // 질문 객체를 만듬
           this.questions = rtnList
@@ -422,13 +515,13 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
 
           // 가족 개인정보 제공동의 내역
           const fmlAgrInfos = jsn.fmlAgrInfos.map(f => new AgrInfo(f));
-          
+
           // 보험 선택 내역 변경인 경우
           if (this.dcnYn) {
 
             // 안내 사항 다 ok
             this.pseInfo.confirms = this.pseInfo.confirms.map(c => true)
-            
+
             /**
              * 보험 선택정보 만들기
              * @param isrData {IsrPrdData}
@@ -454,13 +547,13 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
               fIsrSbcAmt: isrData.fIsrSbcAmt,
               fIsrSbcSc: isrData.fIsrSbcScr,
             })
-            
+
             rtnList.forEach(d => {
 
               if (d.isrrClCd === IsrrClCd.자녀) {
 
                 let child;
-                if(d.tgrRrno) {
+                if (d.tgrRrno) {
 
                   child = new TgrInfo({
                     usrFnm: d.tgrFnm,
@@ -472,7 +565,7 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
                     agrInfo: fmlAgrInfos?.find(f => f.tgrFnm === d.tgrFnm && f.tgrRrno === d.tgrRrno),
                     bhdSlcSeq: d.bhdSlcSeq
                   });
-                  
+
 
                   //child.rrno = this.hashidsHelper.decode(child.rrno)
 
@@ -488,10 +581,10 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
                 //this.selected[d.isrPrdCd][idx - 1].agrInfo = child?.agrInfo;
 
               } else {
-                
+
                 if (d.isrrClCd === IsrrClCd.배우자) {
 
-                  if(d.tgrRrno) {
+                  if (d.tgrRrno) {
                     this.spsInfo = new TgrInfo({
                       usrFnm: d.tgrFnm,
                       rrno: d.tgrRrno,
@@ -500,7 +593,7 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
                       isrrClCd: '1',
                       agrInfo: fmlAgrInfos?.find(f => f.tgrFnm === d.tgrFnm && f.tgrRrno === d.tgrRrno)
                     })
-                    
+
                     //this.spsInfo.rrno = this.hashidsHelper.decode(this.spsInfo.rrno)
                   }
 
@@ -514,26 +607,26 @@ console.log('this.bhdSlcChnYn', this.bhdSlcChnYn)
 
             })
 
-console.log('this.questions', this.questions)
-console.log('this.question', this.questions.find(q=>q.data.isrrClCd === '1' && q.data.essYn))
+            console.log('this.questions', this.questions)
+            console.log('this.question', this.questions.find(q => q.data.isrrClCd === '1' && q.data.essYn))
 
             // 의료비 보장 변경 기간인 경우
             // 배우자 생명상해 가입안했으면 의료비보장 가입 못하도록
             if (this.bhdSlcChnYn) {
 
               // 배우자 가입 보험이 있고 필수 인지
-              const spsEssPrd = this.questions.find(q=>q.data.isrrClCd === '1' && q.data.essYn)
+              const spsEssPrd = this.questions.find(q => q.data.isrrClCd === '1' && q.data.essYn)
 
               console.log('spsEssPrd', spsEssPrd, 'this.selected', this.selected[spsEssPrd?.isrPrdCd])
 
-              if(spsEssPrd){
+              if (spsEssPrd) {
                 this.spsEssYn = !!this.selected[spsEssPrd.data.isrPrdCd]?.tgrRrno;
-              }else  this.spsEssYn = true;
+              } else this.spsEssYn = true;
 
 
               // 배우자 의료비 보장 말고 다른 배우자 보험에 가입된게 있는지 체크
               // 의료비 조정 기간에는 다른 배우자 보험에 가입되어 있으면 배우자 삭제를 하면 안되기 때문이다 24. 12. 2. choihunchul
-              this.spsOtherIsrYn = !!this.questions.find(q=>q.data.isrrClCd === '1' && !this.checkIL002(q.data.isrPrdCd) && this.selected[q.data.isrPrdCd]?.tgrRrno)
+              this.spsOtherIsrYn = !!this.questions.find(q => q.data.isrrClCd === '1' && !this.checkIL002(q.data.isrPrdCd) && this.selected[q.data.isrPrdCd]?.tgrRrno)
             }
 
             console.log('sps', this.spsInfo, 'child', this.chldInfo)
@@ -565,7 +658,7 @@ console.log('this.question', this.questions.find(q=>q.data.isrrClCd === '1' && q
           })
 
         }).finally(() => {
-          this.loadtime =  new Date().getTime() - initTime;
+          this.loadtime = new Date().getTime() - initTime;
           console.log('load on', this.loadtime);
         }); //loading(false));
 
@@ -609,26 +702,26 @@ console.log('this.question', this.questions.find(q=>q.data.isrrClCd === '1' && q
         const slcBgnChnDt = moment(`${this.wlfInst.bhdSlcChnBgnDt} ${this.openTime}`, 'YYYYMMDD HH:mm');
         const slcChnNdDt = moment(`${this.wlfInst.bhdSlcChnNdDt} 23:59`, 'YYYYMMDD HH:mm');
 
-console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
+        console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
 
         if (moment().isBetween(slcBgnChnDt, slcChnNdDt, '', '[]')) {
 
-          if (!this.dcnYn){
+          if (!this.dcnYn) {
             this.throwException(`보험선택 완료자(기본보험 일괄적용 대상자 포함)에 한해서 ${this.bseYr}년도 단체보험 의료비보장 보험 조정이 가능합니다.
 <br><br>
-문의 사항은 공단(☎1588-4321)로 연락 바랍니다.`, {stack: `pctime=${new Date().toLocaleDateString()}`})
-          }else{
+문의 사항은 공단(☎1588-4321)로 연락 바랍니다.`, { stack: `pctime=${new Date().toLocaleDateString()}` })
+          } else {
 
             // 의료비보장 변경 기간
             this.bhdSlcChnYn = true;
           }
 
-        }else{
+        } else {
 
           this.throwException(`${this.bseYr}년도 단체보험 보험선택 기간이 아닙니다.
   <br><span>(${slcBgnDt.format('YYYY-MM-DD(ddd)')} ${this.openTime} ~ ${slcNdDt.format('YYYY-MM-DD(ddd)')})</span>
   <br><br>
-  문의 사항은 공단(☎1588-4321)로 연락 바랍니다.`, {stack: `pctime=${new Date().toLocaleDateString()}`})
+  문의 사항은 공단(☎1588-4321)로 연락 바랍니다.`, { stack: `pctime=${new Date().toLocaleDateString()}` })
         }
 
 
@@ -639,7 +732,7 @@ console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
       return true;
     },
 
-    
+
     /**
      * 처음 시작하기전에 모달을 보여줌
      */
@@ -650,7 +743,7 @@ console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
 
       modal._element.addEventListener('hidden.bs.modal', () => {
 
-        if(this.current===-3){
+        if (this.current === -3) {
           window.close();
           return;
         }
@@ -705,11 +798,11 @@ console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
     },
     async checkSsn(ssn) {
       if (this.testMode) {
-        return {valid: this.pseInfo.rrno === ssn}
+        return { valid: this.pseInfo.rrno === ssn }
       }
 
       //loading()
-        this.isLoading = true;
+      this.isLoading = true;
 
       const encoded = this.hashidsHelper.encode(ssn);
 
@@ -728,7 +821,7 @@ console.log('slcBgnChnDt', slcBgnChnDt, 'slcChnNdDt', slcChnNdDt)
               .forEach(s => {
                 // 주민번호 복호화
                 // 본인은 인증받은 주민번호
-console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
+                console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
                 if (Array.isArray(s)) {
                   s.forEach(ss => {
                     if (ss.tgrRrno) {
@@ -765,7 +858,7 @@ console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
           alertMessage('오류 발생', '서버와 통신 중 오류가 발생했습니다.<br>잠시 후 다시 시도해 주십시오', 'danger');
           console.error('본인 인증 오류 발생', ex);
 
-          this.sendLog('E', {message: '본인 인증 오류 발생', ex})
+          this.sendLog('E', { message: '본인 인증 오류 발생', ex })
           return false;
         }).finally(() => this.isLoading = false)
     },
@@ -777,12 +870,12 @@ console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
      * @param _otherNames {string[]?}
      * @return {boolean}
      */
-    async checkName(input, isrrClCd, _otherNames)  {
+    async checkName(input, isrrClCd, _otherNames) {
 
       input.value = input.value.trim()
       const name = input.value;
 
-      switch (isrrClCd){
+      switch (isrrClCd) {
 
         // 배우자
         case '1': {
@@ -810,7 +903,7 @@ console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
 
               if (r.isConfirmed) {
 
-                this.sendLog("I", {'배우자 성명동일': name + ',' + this.pseInfo.usrFnm})
+                this.sendLog("I", { '배우자 성명동일': name + ',' + this.pseInfo.usrFnm })
                 markingInvalid(input);
                 this.spsInfo.validatedName = true;
                 return true;
@@ -830,7 +923,7 @@ console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
         // 자녀
         case '3': {
 
-          if(_otherNames) _otherNames = this.otherNames('3', input)
+          if (_otherNames) _otherNames = this.otherNames('3', input)
 
           const checked = validateName(name, _otherNames)
 
@@ -859,23 +952,23 @@ console.debug('s.isrrClCd', s.isrrClCd, 's.tgrRrno', s.tgrRrno, s)
      */
     async checkFmlSsn(input, isrrClCd, child, otherRrnos) {
 
-      const rrno =  input.dataset.unmask || input.value;
+      const rrno = input.dataset.unmask || input.value;
 
-console.debug('checkFmlSsn', isrrClCd, rrno, rrno.length)
+      console.debug('checkFmlSsn', isrrClCd, rrno, rrno.length)
 
       if (rrno.length !== 13) {
         markingInvalid(input, false, '주민번호를 입력해 주세요');
-        return {valid:false};
+        return { valid: false };
       }
 
-      switch (isrrClCd){
+      switch (isrrClCd) {
 
         // 배우자 주민번호 체크
-        case '1':{
+        case '1': {
 
           const checked = validateSpsSsn(rrno, this.pseInfo, this.bseYr, this.chldInfo);
 
-console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
+          console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
 
           if (checked.valid) {
             markingInvalid(input);
@@ -886,22 +979,22 @@ console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
           return checked
         }
 
-        case '3':{
+        case '3': {
           const checked = validateChildSsn(child, this.pseInfo, this.bseYr, this.wlfInst.chldIsrAgRstcYr, otherRrnos)
 
-console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
+          console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
 
           if (checked.valid) {
             markingInvalid(input);
           } else {
 
-            if(checked.message){
+            if (checked.message) {
               markingInvalid(input, false, checked.message);
-            }else{
+            } else {
 
-              if(checked.data?.over19 || checked.data?.over14){
+              if (checked.data?.over19 || checked.data?.over14) {
                 markingInvalid(input);
-              }else{
+              } else {
                 markingInvalid(input, true, 'x');
               }
 
@@ -922,27 +1015,27 @@ console.debug('checkFmlSsn', checked, isrrClCd, rrno, rrno.length)
      */
     checkCellPhoneNo(input) {
 
-console.debug('checkCellPhoneNo', input.id, 'disabled', input.disabled, 'value', input.value, input)
+      console.debug('checkCellPhoneNo', input.id, 'disabled', input.disabled, 'value', input.value, input)
 
-      if(!input || input.disabled) return false;
+      if (!input || input.disabled) return false;
 
       const cellPhoneNo = input.value
 
-      if(!cellPhoneNo){
+      if (!cellPhoneNo) {
         markingInvalid(input, false, '휴대폰 번호를 입력해 주세요.')
         return false;
       }
 
       const b = nxtUtil.validateMobileNum(cellPhoneNo);
 
-console.debug('checkCellPhoneNo==>', b, input.id, 'disabled', input.disabled, 'value', input.value, input)
+      console.debug('checkCellPhoneNo==>', b, input.id, 'disabled', input.disabled, 'value', input.value, input)
 
       if (!b) {
         markingInvalid(input, false, '올바른 휴대폰 번호가 아닙니다.')
         return false;
       } else {
 
-console.debug('checkCellPhoneNo=======>', b, input.id, 'disabled', input.disabled, 'value', input.value, input)
+        console.debug('checkCellPhoneNo=======>', b, input.id, 'disabled', input.disabled, 'value', input.value, input)
 
         markingInvalid(input)
 
@@ -951,21 +1044,21 @@ console.debug('checkCellPhoneNo=======>', b, input.id, 'disabled', input.disable
 
     },
 
-    async checkSpousePublicOfficial(rrno){
+    async checkSpousePublicOfficial(rrno) {
 
-      if(!rrno) return true;
+      if (!rrno) return true;
 
       let checked = false;
 
-      if(this.testMode){
+      if (this.testMode) {
 
-console.group('checkSpousePublicOfficial', rrno)
+        console.group('checkSpousePublicOfficial', rrno)
 
       }
 
-console.debug('checkSpousePublicOfficial', checked)
+      console.debug('checkSpousePublicOfficial', checked)
 
-      if(checked){
+      if (checked) {
 
         const r = await Swal.fire({
           icon: 'warning',
@@ -978,12 +1071,12 @@ console.debug('checkSpousePublicOfficial', checked)
           cancelButtonText: '보험 가입 안함',
         })
 
-console.debug('checkSpousePublicOfficial', r)
-console.groupEnd()
+        console.debug('checkSpousePublicOfficial', r)
+        console.groupEnd()
 
         return r.isConfirmed;
-      }else{
-console.groupEnd()
+      } else {
+        console.groupEnd()
         return true
       }
 
@@ -1021,9 +1114,9 @@ console.groupEnd()
       const step = this.pseInfo.confirms.findIndex(c => !c)
 
       /*if (step === -1) {
-
+ 
        this.setStep(this.realStep)
-
+ 
       } else {*/
 
       //this.showPrivacyOffCanvas(step, this.bseYr)
@@ -1062,7 +1155,7 @@ console.groupEnd()
 
         } else {
           const container = document.querySelector('main .container');
-          container.scrollTo({top: container.scrollHeight, behavior: 'smooth'});
+          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
 
       }
@@ -1154,10 +1247,11 @@ console.groupEnd()
 
       const selected = this.questions.filter((question) => {
 
-        if (question.data.isrrClCd === '1') {
+        if (question.data.isrrClCd === IsrrClCd.배우자) {
 
-console.log('this.spsInfo', this.spsInfo);
+          console.log('this.spsInfo', this.spsInfo);
 
+          // 배우자 보험 가입 안함
           if (this.spsInfo === null) {
             if (this.selected[question.data.isrPrdCd]) {
               delete this.selected[question.data.isrPrdCd]
@@ -1166,21 +1260,22 @@ console.log('this.spsInfo', this.spsInfo);
           } else {
 
             // 의료비 보장 보험 조정 기간
-            if(this.bhdSlcChnYn){
+            if (this.bhdSlcChnYn) {
 
               // 의료비 관련 보험만 체크 하자
               // 국세청인 경우 배우자 보험이 필수가 아닌 암진단비와 의료비 보장만 있는데
               // 조정기간에는 암진단비는 바꿀수 없고 의료비 보장만 바꿀수 있기 때문에
               // 다 선택 하지 않은 것으로 판단 된다.
-              if(this.checkIL002(question.data.isrPrdCd)) return !this.selected[question.data.isrPrdCd]
+              if (this.checkIL002(question.data.isrPrdCd)) return !this.selected[question.data.isrPrdCd]
               else return false
 
 
-            }else return !this.selected[question.data.isrPrdCd]
+            } else return !this.selected[question.data.isrPrdCd]
           }
 
-        } else if (question.data.isrrClCd === '3') {
+        } else if (question.data.isrrClCd === IsrrClCd.자녀) {
 
+          // 자녀 보험 가입 안함
           if (this.chldInfo === null) {
             if (this.selected[question.data.isrPrdCd]) {
               delete this.selected[question.data.isrPrdCd];
@@ -1189,10 +1284,10 @@ console.log('this.spsInfo', this.spsInfo);
 
           } else {
 
-console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question.data.isrPrdCd])
+            console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question.data.isrPrdCd])
 
             return (!this.selected[question.data.isrPrdCd])
-              || (this.chldInfo.length !== this.selected[question.data.isrPrdCd]?.filter(s => !!s).length)
+              || this.chldInfo.find(chld => !this.selected[question.data.isrPrdCd][chld.tempId])
           }
 
         } else {
@@ -1210,22 +1305,16 @@ console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question
     makeIsrStepper() {
       return this.questions;
     },
-    clickIsrPrdOption(){
-    
+    clickIsrPrdOption() {
+
     },
     /**
      * 보험상품 옵션 만들기
-     * @param data {IsrPrd}
-     * @param usrFnm {string}
-     * @param rrno  {string}
-     * @param isrrClCd {string}
-     * @param sxClCd {sxClCd}
-     * @param age {number}
-     * @param cellPhoneNo {string}
-     * @param files {any}
+     * @param data {IsrPrdData}
+     * @param tgrInfo {TgrInfo}
      * @return {[HTMLDivElement]}
      */
-    makeIsrPrdOption(data, {usrFnm, rrno, isrrClCd, sxClCd, age, cellPhoneNo, files}) {
+    makeIsrPrdOption(data, tgrInfo) {
 
       /**
        * 필수 아닐때 미가입 옵션
@@ -1236,7 +1325,31 @@ console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question
         option.classList.add('list-group-item', 'list-group-item-action');
         option.name = `option${__data.isrPrdCd}`;
 
-        if (this.selected[__data.isrPrdCd] && !this.selected[__data.isrPrdCd].tgrFnm) option.classList.add('active');
+        const ignoreData = {
+          isrPrdCd: __data.isrPrdCd,
+          isrDtlCd: '',
+          isrDtlNm: '미가입',
+          isrrClCd: __data.isrrClCd,
+          essYn: __data.essYn,
+          xmpRegClCd: __data.xmpRegClCd,
+          olfDndIvgYn: __data.olfDndIvgYn,
+        }
+
+        // 이전 선택이 미가입 이면 active 표시
+        if (ignoreData.isrrClCd === IsrrClCd.자녀) {
+
+          if (this.selected[ignoreData.isrPrdCd] && !this.selected[ignoreData.isrPrdCd][tgrInfo.tempId]?.useYn) {
+            option.classList.add('active');
+          }
+
+
+        } else {
+
+          if (this.selected[ignoreData.isrPrdCd] && !this.selected[ignoreData.isrPrdCd].useYn) {
+            option.classList.add('active');
+          }
+        }
+
 
         const optionTxt = `${optionNumber}. <b>미가입</b>(0원)`
 
@@ -1246,78 +1359,49 @@ console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question
           let selectedAll = false;
 
           // stepper trigger lighting
-          const _stepperTrigger = document.querySelector(`#${__data.isrPrdCd}-trigger span.bs-stepper-circle`)
+          const _stepperTrigger = document.querySelector(`#${ignoreData.isrPrdCd}-trigger span.bs-stepper-circle`)
+
+          const sibling = Array.from(e.target.parentElement.querySelectorAll('button.list-group-item-action'));
 
           // 자녀 보험
-          if (isrrClCd === '3') {
+          if (tgrInfo.isrrClCd === IsrrClCd.자녀) {
 
-            this.sendLog('D', {[data.isrPrdCd]: usrFnm})
+            this.sendLog('D', { [ignoreData.isrPrdCd]: tgrInfo.tgrFnm })
 
-            const chldIndex = option.dataset.chldIndex;
             const bhdSlcSeq = option.dataset.bhdSlcSeq;
 
-            if (!this.selected[data.isrPrdCd]) this.selected[data.isrPrdCd] = [];
+            if (!this.selected[ignoreData.isrPrdCd]) this.selected[ignoreData.isrPrdCd] = {}
 
-            this.selected[data.isrPrdCd][chldIndex] = new IsrPrd({
-                                                                  isrPrdCd: __data.isrPrdCd,
-                                                                  isrDtlCd: __data.isrDtlCd,
-                                                                  isrrClCd: __data.isrrClCd,
-                                                                  essYn: __data.essYn,
-                                                                  xmpRegClCd: __data.xmpRegClCd,
-                                                                  olfDndIvgYn: __data.olfDndIvgYn,
-                                                                }, __data.bhdSlcSeq)
+            this.selected[ignoreData.isrPrdCd][tgrInfo.tempId] = new IsrPrd(ignoreData, tgrInfo, false)
 
-            if (!_stepperTrigger.classList.contains('bg-success')) {
-
-              console.debug('this.chldInfo.length', this.chldInfo.length, 'this.selected[data.isrPrdCd]', this.selected[data.isrPrdCd], this.selected[data.isrPrdCd].filter(s => !!s))
-
-              selectedAll = this.chldInfo.length === this.selected[data.isrPrdCd].filter(s => !!s).length;
-
-              if (selectedAll) {
-                _stepperTrigger.classList.add('bg-success', 'bi', 'bi-check');
-                _stepperTrigger.innerText = ''
-              }
-
-            }
-
-          }else{
+          } else {
 
             selectedAll = true;
 
-            this.selected[__data.isrPrdCd] = new IsrPrd({
-              isrPrdCd: __data.isrPrdCd,
-              isrDtlCd: __data.isrDtlCd,
-              isrrClCd: __data.isrrClCd,
-              essYn: __data.essYn,
-              xmpRegClCd: __data.xmpRegClCd,
-              olfDndIvgYn: __data.olfDndIvgYn,
-            }, __data.bhdSlcSeq)
+            this.selected[ignoreData.isrPrdCd] = new IsrPrd(ignoreData, tgrInfo, false)
 
-            this.sendLog('D', {[__data.isrPrdCd]: optionTxt})
+            this.sendLog('D', { [ignoreData.isrPrdCd]: optionTxt })
 
             //answer(optionTxt);
             sibling.filter(s => s !== e.target).forEach((s => s.classList.remove('active')));
-
-
-            if (!_stepperTrigger.classList.contains('bg-success')) {
-              _stepperTrigger.classList.add('bg-success', 'bi', 'bi-check');
-              _stepperTrigger.innerText = ''
-            }
           }
-          
+
           e.target.classList.add('active');
-          
-          const sibling = Array.from(e.target.parentElement.querySelectorAll('button.list-group-item-action'));
-          
+
+
           console.debug('sibling--------------', sibling)
-          
+
           setTimeout(() => {
 
             // 의료비 보장 변경 기간에는 관련 상품들간 이동하도록
-            if(this.bhdSlcChnYn) this.nextIL002()
-            else{
-              if(selectedAll) this.stepper.next()
+            if (this.isrPrdSelectCompleted(data)) {
+
+              if (this.bhdSlcChnYn) this.nextIL002()
+              else {
+                this.stepper.next()
+              }
             }
+
           }, 700)
 
 
@@ -1339,14 +1423,16 @@ console.debug(`this.selected[${question.data.isrPrdCd}]`, this.selected[question
 
       let optionNumber = 0;
 
-console.log('data.essYn', data.essYn, 'data.isrrClCd', data.isrrClCd)
+      console.log('data.essYn', data.essYn, 'data.isrrClCd', data.isrrClCd)
 
       // 필수 아닐때 미가입 추가
-      // 배우자 생명상행도 제외
+      // 배우자 생명상해는 미가입 제외
       if (!data.essYn
         && ((data.isrrClCd === '0')
           || (data.isrrClCd === '3')
-          || (data.isrrClCd === '1' && data.isrPrdCd !== 'IL0033'))){
+          || (data.isrrClCd === '1' && data.isrPrdCd !== 'IL0033'))) {
+
+
 
         __options.push(ignoreOption(optionNumber += 1, data));
       }
@@ -1372,26 +1458,41 @@ console.log('data.essYn', data.essYn, 'data.isrrClCd', data.isrrClCd)
         option.name = `option${o.isrPrdCd}`;
 
 
-console.log('this.selected[o.isrPrdCd]?.isrDtlCd', this.selected[o.isrPrdCd]?.isrDtlCd, o.isrDtlCd, 'selected', this.selected[o.isrPrdCd], 'option', option)
-        if (this.selected[o.isrPrdCd] && this.selected[o.isrPrdCd].isrDtlCd === o.isrDtlCd) option.classList.add('active');
+        console.log('this.selected[o.isrPrdCd]?.isrDtlCd', this.selected[o.isrPrdCd]?.isrDtlCd, o.isrDtlCd, 'selected', this.selected[o.isrPrdCd], 'option', option)
+
+        // 이전 선택 내역 표시
+        if (tgrInfo.isrrClCd === IsrrClCd.자녀) {
+          if (this.selected[o.isrPrdCd] && this.selected[o.isrPrdCd][tgrInfo.tempId]
+            && this.selected[o.isrPrdCd][tgrInfo.tempId].isrDtlCd === o.isrDtlCd) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        } else {
+          if (this.selected[o.isrPrdCd] && this.selected[o.isrPrdCd].isrDtlCd === o.isrDtlCd) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        }
 
         optionNumber += 1;
 
-        const sbcAmt = getSbcAmt(sxClCd, o);
+        const sbcAmt = getSbcAmt(tgrInfo.sxClCd, o);
 
         let optionTxt;
 
 
         // 자녀 보험
-        if (isrrClCd === '3') {
+        if (tgrInfo.isrrClCd === IsrrClCd.자녀) {
 
           // 자녀 보험 선택
-          if (this.dcnYn && this.chldInfo
-              && this.chldInfo.length
-              && this.selected[o.isrPrdCd]?.length === this.chldInfo.length){
-
-            option.classList.add('active');
-          }
+          /*  if (this.dcnYn && this.chldInfo
+             && this.chldInfo.length
+             && this.selected[o.isrPrdCd]?.length === this.chldInfo.length) {
+ 
+             option.classList.add('active');
+           } */
 
           optionTxt = `${optionNumber}. <b>${o.isrDtlNm}</b> (${sbcAmt.toLocaleString()}원${sbcAmt > 0 ? '<small> 예상</small>' : ''})`;
 
@@ -1422,8 +1523,8 @@ console.log('this.selected[o.isrPrdCd]?.isrDtlCd', this.selected[o.isrPrdCd]?.is
             if (!confirmed) {
               //option.offsetParent.querySelector('div.divForOptionDesc').innerHTML = ''
               return option.nextSibling.click()
-            }else{
-              this.sendLog('I', {message: 'IM0212', confirm: new Date().toLocaleString()})
+            } else {
+              this.sendLog('I', { message: 'IM0212', confirm: new Date().toLocaleString() })
             }
 
           }
@@ -1434,38 +1535,20 @@ console.log('this.selected[o.isrPrdCd]?.isrDtlCd', this.selected[o.isrPrdCd]?.is
           let selectedAll = true;
 
           // 자녀 보험
-          if (isrrClCd === '3') {
+          if (tgrInfo.isrrClCd === IsrrClCd.자녀) {
 
-            this.sendLog('D', {[data.isrPrdCd]: usrFnm})
+            this.sendLog('D', { [data.isrPrdCd]: tgrInfo.tgrFnm })
 
-            const chldIndex = option.dataset.chldIndex;
             const bhdSlcSeq = option.dataset.bhdSlcSeq;
 
-            if (!this.selected[data.isrPrdCd]) this.selected[data.isrPrdCd] = [];
+            if (!this.selected[data.isrPrdCd]) this.selected[data.isrPrdCd] = {};
 
-            this.selected[data.isrPrdCd][chldIndex] = new IsrPrd(data.dtlCdList[index], bhdSlcSeq, usrFnm, rrno, sxClCd, age, cellPhoneNo, files);
-
-            if (!_stepperTrigger.classList.contains('bg-success')) {
-
-console.group('this.chldInfo.length', this.chldInfo.length, 'this.selected[data.isrPrdCd]', this.selected[data.isrPrdCd], this.selected[data.isrPrdCd].filter(s => !!s))
-
-              selectedAll = this.chldInfo.length === this.selected[data.isrPrdCd].filter(s => !!s).length;
-
-console.debug('this.chldInfo.length', this.chldInfo.length, this.selected[data.isrPrdCd].filter(s => !!s), 'length', this.selected[data.isrPrdCd].filter(s => !!s).length, 'selectedAll', selectedAll)
-
-              if (selectedAll) {
-                _stepperTrigger.classList.add('bg-success', 'bi', 'bi-check');
-                _stepperTrigger.innerText = ''
-              }
-
-console.groupEnd()
-
-            }
+            this.selected[data.isrPrdCd][tgrInfo.tempId] = new IsrPrd(data.dtlCdList[index], tgrInfo);
 
           } else {
-            this.sendLog('D', {[data.isrPrdCd]: data.dtlCdList[index].isrDtlCd})
+            this.sendLog('D', { [data.isrPrdCd]: data.dtlCdList[index].isrDtlCd })
 
-            this.selected[data.isrPrdCd] = new IsrPrd(data.dtlCdList[index], data.bhdSlcSeq, usrFnm, rrno, sxClCd, age, cellPhoneNo, files);
+            this.selected[data.isrPrdCd] = new IsrPrd(data.dtlCdList[index], tgrInfo);
           }
 
           console.log('this.selected', this.selected)
@@ -1476,16 +1559,16 @@ console.groupEnd()
 
           const sibling = Array.from(option.parentElement.querySelectorAll('button.list-group-item-action'));
 
-console.debug('sibling====', sibling)
+          console.debug('sibling====', sibling)
 
           sibling.filter(s => s !== option).forEach((s => s.classList.remove('active')));
 
           setTimeout(() => {
             // 의료비 보장 변경 기간에는 관련 상품들간 이동하도록
-            if(this.bhdSlcChnYn) this.nextIL002()
-            else{
+            if (this.bhdSlcChnYn) this.nextIL002()
+            else {
 
-              if(selectedAll){
+              if (this.isrPrdSelectCompleted(data)) {
                 this.stepper.next()
               }
 
@@ -1505,15 +1588,15 @@ console.debug('sibling====', sibling)
      * 보험선택 tab을 만듬
      * @param indexStep {number}
      */
-    async makeQuestion(indexStep= this.stepper._currentIndex){
+    async makeQuestion(indexStep = this.stepper._currentIndex) {
 
       const question = this.questions[indexStep];
-console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.stepper._currentIndex)
+      console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.stepper._currentIndex)
 
       const _prdCd = question.data.isrPrdCd;
 
       // 의료비 보장 조정기간 없음 안내 추가 - by 예현핑 25. 8. 11. choihunchul
-      if(_prdCd === 'IL0002'){
+      if (_prdCd === 'IL0002') {
         Swal.fire({
           icon: 'info',
           title: '의료비 보장 안내',
@@ -1528,13 +1611,13 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
 
         document.querySelector(`#${question.data.isrPrdCd}-part div.divForOption`).innerHTML = ''
 
-        if(this.bhdSlcChnYn){
+        if (this.bhdSlcChnYn) {
 
-          if(this.spsEssYn){
+          if (this.spsEssYn) {
 
-            if(this.checkIL002(question.data.isrPrdCd)) await this.confirmSpsIsr(0)
+            if (this.checkIL002(question.data.isrPrdCd)) await this.confirmSpsIsr(0)
 
-          }else {
+          } else {
             // 배우자 필수 가입 안한 경우 배우자 의료비 보장 변경할 수 없다는 안내 24. 11. 25. choihunchul
             if (this.questions.find(q => q.data.isrrClCd === IsrrClCd.배우자 && q.data.essYn)) {
 
@@ -1543,7 +1626,7 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
             }
           }
 
-        }else{
+        } else {
           await this.confirmSpsIsr(0)
         }
 
@@ -1558,7 +1641,10 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
               const trigger = document.querySelector(`#${s.data.isrPrdCd}-trigger`);
               trigger.classList.add('opacity-50')
 
-              if(this.selected[s.data.isrPrdCd]) this.selected[s.data.isrPrdCd].tgrFnm = '';
+              if (this.selected[s.data.isrPrdCd]) {
+
+                this.selected[s.data.isrPrdCd].tgrFnm = '';
+              }
 
               trigger.parentElement.classList.remove('active')
 
@@ -1584,10 +1670,12 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
         // 자녀 보험
       } else if (question.data.isrrClCd === '3' && !this.chldInfo?.length) {
 
-
         document.querySelector(`#${question.data.isrPrdCd}-part div.divForOption`).innerHTML = ''
 
-        await this.confirmChldIsr(0)
+        // 자녀 상품중 첫번째 상품이면 자녀 보험 가입 여부 물어본다.z
+        if (this.chldPrdMin === question.data.isrPrdCd) {
+          await this.confirmChldIsr(0)
+        }
 
         // 자녀 보험 가입 안함
         if (this.chldInfo === null) {
@@ -1597,11 +1685,15 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
           this.questions.filter(q => q.data.isrrClCd === IsrrClCd.자녀)
             .forEach((s => {
               const trigger = document.querySelector(`#${s.data.isrPrdCd}-trigger`);
-              trigger.classList.add('opacity-50')
+              trigger.classList.add('opacity-50', 'text-muted')
 
+              // 자녀 가입 보험 삭제
               delete this.selected[s.data.isrPrdCd]
 
-              if (s.data.isrPrdCd !== 'IL0035') trigger.classList.add('disabled')
+              // 뭔지 모르겠다.
+              /* if (s.data.isrPrdCd !== 'IL0035') {
+                trigger.classList.add('disabled')
+              } */
 
               trigger.parentElement.classList.remove('active')
 
@@ -1629,86 +1721,86 @@ console.log('makeQuestion', indexStep, question, 'stepper', this.stepper, this.s
       const stepsContent = this.stepper._stepsContents[indexStep].querySelector('div.divForOption');
 
       stepsContent.innerHTML = ''
-      
-        const tgrInfo = question.data.isrrClCd === IsrrClCd.본인 ? this.pseInfo
-          : question.data.isrrClCd === IsrrClCd.배우자 ? this.spsInfo : this.chldInfo
 
-        // 자녀보험
-        if (question.data.isrrClCd === IsrrClCd.자녀) {
+      const tgrInfo = question.data.isrrClCd === IsrrClCd.본인 ? this.pseInfo
+        : question.data.isrrClCd === IsrrClCd.배우자 ? this.spsInfo : this.chldInfo
 
-          if (this.chldInfo && this.chldInfo.length) {
-            this.chldInfo.forEach((chld, _idx) => {
+      // 자녀보험
+      if (question.data.isrrClCd === IsrrClCd.자녀) {
 
-              const __div = document.createElement('div')
-              __div.classList.add('list-group', 'p-0', 'mb-4', 'focusable')
-              const __div2 = document.createElement('div');
-              __div2.classList.add('fs-5', 'py-1', 'px-3', 'bg-info-subtle')
-              __div2.innerHTML = `${_idx + 1}. <b>${chld.usrFnm}</b>(${nxtUtil.formatSsn(chld.rrno)})`
-              __div.append(__div2)
-              stepsContent.append(__div)
+        if (this.chldInfo && this.chldInfo.length) {
+          this.chldInfo.forEach((chld, _idx) => {
 
-              const options = this.makeIsrPrdOption(question.data, chld)
-              options.forEach((option, index) => {
-                option.dataset.chldIndex = _idx;
-                option.dataset.bhdSlcSeq = chld.bhdSlcSeq || 0;
-                option.title = `i:${_idx}, s:${chld.bhdSlcSeq}`
-                __div.append(option)
+            const __div = document.createElement('div')
+            __div.classList.add('list-group', 'p-0', 'mb-4', 'focusable')
+            const __div2 = document.createElement('div');
+            __div2.classList.add('fs-5', 'py-1', 'px-3', 'bg-info-subtle')
+            __div2.innerHTML = `${_idx + 1}. <b>${chld.usrFnm}</b>(${nxtUtil.formatSsn(chld.rrno)})`
+            __div.append(__div2)
+            stepsContent.append(__div)
 
-console.log('this.dcnYn', this.dcnYn, 'chld.bhdSlcSeq', chld.bhdSlcSeq, 'option', option)
+            const options = this.makeIsrPrdOption(question.data, chld)
+            options.forEach((option, index) => {
+              option.dataset.chldIndex = _idx;
+              option.dataset.bhdSlcSeq = chld.bhdSlcSeq || 0;
+              option.title = `i:${_idx}, s:${chld.bhdSlcSeq}`
+              __div.append(option)
 
-                /*if(this.dcnYn && !chld.bhdSlcSeq){
-                  option.click()
-                }*/
+              console.log('this.dcnYn', this.dcnYn, 'chld.bhdSlcSeq', chld.bhdSlcSeq, 'option', option)
 
-              })
+              /*if(this.dcnYn && !chld.bhdSlcSeq){
+                option.click()
+              }*/
+
             })
-          }
-
-        } else {
-
-          //stepsContent.classList.add('list-group', 'p-0', 'border', 'border-primary', 'animate__animated', 'animate__flash', 'animate__repeat-2', 'animate__slow')
-          stepsContent.classList.add('list-group', 'p-0', 'focusable')
-          //stepsContent.setAttribute('tabindex', 0)
-
-          const options = this.makeIsrPrdOption(question.data, tgrInfo)
-
-          options.forEach((option, index) => {
-
-            // 의료비보장 수정기간에는 의료비보장 상품이 아니면 클릭 안되게
-            if(this.bhdSlcChnYn && !this.checkIL002(option.name.replace('option', ''))){
-              option.disabled = true;
-              option.title = '의료비 보장 조정기간에는 의료비 보장보험(실손)외 다른 보험 상품(생명/상해, 특정질병 진단비 등)은 변경할 수 없습니다.'
-              stepsContent.classList.remove('focusable')
-              stepsContent.classList.add('opacity-75')
-            }
-
-            stepsContent.append(option)
           })
         }
 
-        // 유의 사항
-        const divForNotice = this.stepper._stepsContents[indexStep]
-          .querySelector('div.divForNotice');
+      } else {
 
-        if(notice[question.data.isrPrdCd]){
+        //stepsContent.classList.add('list-group', 'p-0', 'border', 'border-primary', 'animate__animated', 'animate__flash', 'animate__repeat-2', 'animate__slow')
+        stepsContent.classList.add('list-group', 'p-0', 'focusable')
+        //stepsContent.setAttribute('tabindex', 0)
 
-          divForNotice.style.display = 'block'
+        const options = this.makeIsrPrdOption(question.data, tgrInfo)
 
-          divForNotice.innerHTML = notice[question.data.isrPrdCd]?.content || ''
+        options.forEach((option, index) => {
 
-          const noticeTitle = document.createElement('div');
-          noticeTitle.classList.add('rounded', 'bg-success', 'bg-opacity-25', 'p-2', 'mb-3', 'bi', 'bi-megaphone-fill', 'text-primary', 'fw-bold');
-          noticeTitle.textContent = ' 보장내용 및 유의사항';
+          // 의료비보장 수정기간에는 의료비보장 상품이 아니면 클릭 안되게
+          if (this.bhdSlcChnYn && !this.checkIL002(option.name.replace('option', ''))) {
+            option.disabled = true;
+            option.title = '의료비 보장 조정기간에는 의료비 보장보험(실손)외 다른 보험 상품(생명/상해, 특정질병 진단비 등)은 변경할 수 없습니다.'
+            stepsContent.classList.remove('focusable')
+            stepsContent.classList.add('opacity-75')
+          }
 
-          divForNotice.prepend(noticeTitle)
+          stepsContent.append(option)
+        })
+      }
 
-        }else{
-          divForNotice.style.display = 'none'
-        }
+      // 유의 사항
+      const divForNotice = this.stepper._stepsContents[indexStep]
+        .querySelector('div.divForNotice');
 
-        setTimeout(() => {
-          stepsContent.focus()
-        }, 400)
+      if (notice[question.data.isrPrdCd]) {
+
+        divForNotice.style.display = 'block'
+
+        divForNotice.innerHTML = notice[question.data.isrPrdCd]?.content || ''
+
+        const noticeTitle = document.createElement('div');
+        noticeTitle.classList.add('rounded', 'bg-success', 'bg-opacity-25', 'p-2', 'mb-3', 'bi', 'bi-megaphone-fill', 'text-primary', 'fw-bold');
+        noticeTitle.textContent = ' 보장내용 및 유의사항';
+
+        divForNotice.prepend(noticeTitle)
+
+      } else {
+        divForNotice.style.display = 'none'
+      }
+
+      setTimeout(() => {
+        stepsContent.focus()
+      }, 400)
 
 
     },
@@ -1731,7 +1823,7 @@ console.log('this.dcnYn', this.dcnYn, 'chld.bhdSlcSeq', chld.bhdSlcSeq, 'option'
         stepperEL.addEventListener('show.bs-stepper', e => {
           const indexStep = e.detail.indexStep;
 
-console.log('show.bs-stepper', indexStep, e);
+          console.log('show.bs-stepper', indexStep, e);
 
           this.current = indexStep;
 
@@ -1749,7 +1841,7 @@ console.log('show.bs-stepper', indexStep, e);
 
         stepperEL.addEventListener('shown.bs-stepper', async e => {
 
-console.log('shown.bs-stepper', e)
+          console.log('shown.bs-stepper', e)
 
           // 다른 stepper tab을 숨김처리함
           Array.from(e.target.querySelectorAll('div.content')).forEach(el => {
@@ -1765,7 +1857,7 @@ console.log('shown.bs-stepper', e)
 
         // 의료비 보정 기간에는
         // 최초 의료비보장 수정 처음 상품 보여준다
-        if(this.bhdSlcChnYn){
+        if (this.bhdSlcChnYn) {
           this.nextIL002();
         }
 
@@ -1779,7 +1871,7 @@ console.log('shown.bs-stepper', e)
      * @param isrPrdCd
      */
     doNoticeAgree(isrPrdCd) {
-      this.pseInfo.noticeAgree.push({[isrPrdCd]: new Date()})
+      this.pseInfo.noticeAgree.push({ [isrPrdCd]: new Date() })
     },
     deleteSps() {
 
@@ -1790,7 +1882,7 @@ console.log('shown.bs-stepper', e)
             this.spsInfo = null;
             Object.values(this.selected).filter(s => s.isrrClCd === '1')
               .forEach(s => {
-                if(this.selected[s.isrPrdCd]) this.selected[s.isrPrdCd].tgrFnm = ''
+                if (this.selected[s.isrPrdCd]) this.selected[s.isrPrdCd].tgrFnm = ''
               });
 
             console.log('this.selected', this.selected)
@@ -1809,31 +1901,31 @@ console.log('shown.bs-stepper', e)
      * @param isrrClCd {IsrrClCd}
      * @return {TgrInfo|TgrInfo[]}
      */
-    findLatestFmlInfo(isrrClCd){
+    findLatestFmlInfo(isrrClCd) {
 
       // 사용하지 않기로 함
       //FIXME
       //return false;
-      switch (isrrClCd){
+      switch (isrrClCd) {
         case IsrrClCd.배우자:
-          return this.fmlInfo.find(f=>f.isrrClCd === isrrClCd)
+          return this.fmlInfo.find(f => f.isrrClCd === isrrClCd)
         case IsrrClCd.자녀:
-          return this.fmlInfo.filter(f=>f.isrrClCd === isrrClCd)
+          return this.fmlInfo.filter(f => f.isrrClCd === isrrClCd)
       }
     },
 
     /**
      * 배우자 정보 변경
      */
-    async updateSpsIsr(spsFnm, spsRrno, spsTel){
+    async updateSpsIsr(spsFnm, spsRrno, spsTel) {
 
       // 바뀐 내용 확인
-      if(spsFnm !== this.spsInfo.usrFnm
-        ||  spsRrno !== this.spsInfo.rrno
-        ||  spsTel !== this.spsInfo.cellPhoneNo
-      ){
+      if (spsFnm !== this.spsInfo.usrFnm
+        || spsRrno !== this.spsInfo.rrno
+        || spsTel !== this.spsInfo.cellPhoneNo
+      ) {
 
-        this.sendLog("I", {chgSpsFnm: spsFnm, chgSpsRrno: this.hashidsHelper.encode(spsRrno), chgSpsTel: spsTel})
+        this.sendLog("I", { chgSpsFnm: spsFnm, chgSpsRrno: this.hashidsHelper.encode(spsRrno), chgSpsTel: spsTel })
 
         // 정보확인
         const _confirm = await this.confirmSpsInfo(spsFnm, spsRrno, spsTel)
@@ -1842,7 +1934,7 @@ console.log('shown.bs-stepper', e)
 
         if (_confirm.isConfirmed) {
 
-          const {bornYear, tgrSxClCd, tgrAg, birthday} = calcSsn(spsRrno, this.bseYr);
+          const { bornYear, tgrSxClCd, tgrAg, birthday } = calcSsn(spsRrno, this.bseYr);
 
           this.spsInfo = new TgrInfo({
             usrFnm: spsFnm,
@@ -1854,9 +1946,9 @@ console.log('shown.bs-stepper', e)
           })
 
           // 선택한 보험 변경
-          Object.values(this.selected).filter(s=>s.isrrClCd === '1')
+          Object.values(this.selected).filter(s => s.isrrClCd === '1')
             .forEach(s => {
-              if(s.isrDtlCd){
+              if (s.isrDtlCd) {
                 s.tgrFnm = spsFnm
                 s.tgrRrno = spsRrno
                 s.tgrAg = tgrAg
@@ -1864,8 +1956,8 @@ console.log('shown.bs-stepper', e)
               }
             })
 
-console.debug('this.spsInfo', this.spsInfo)
-console.debug('this.selected', Object.values(this.selected).filter(s=>s.isrrClCd === '1'))
+          console.debug('this.spsInfo', this.spsInfo)
+          console.debug('this.selected', Object.values(this.selected).filter(s => s.isrrClCd === '1'))
 
           await Swal.fire({
             icon: 'success',
@@ -1880,17 +1972,17 @@ console.debug('this.selected', Object.values(this.selected).filter(s=>s.isrrClCd
 
         }
 
-console.debug('not _confirm', _confirm)
+        console.debug('not _confirm', _confirm)
 
         return false;
 
         // 아무것도 변경 안됐을때 그냥 닫기
-      }else{
+      } else {
 
         console.log('not changed', this.spsInfo)
         // 보험 완료인 경우가 아니면 배정 내역의 배우자 정보를 불러온 경우이기 때문에
         // 다시한번 확인
-        if(!this.dcnYn){
+        if (!this.dcnYn) {
 
           // 정보확인
           const _confirm = await this.confirmSpsInfo(spsFnm, spsRrno, spsTel)
@@ -1914,7 +2006,7 @@ console.debug('not _confirm', _confirm)
      * @param telNo {string}
      * @return {Promise<*>}
      */
-    async confirmSpsInfo(name, rrno, telNo){
+    async confirmSpsInfo(name, rrno, telNo) {
 
       const _confirm = await Swal.fire({
         icon: 'question',
@@ -1960,13 +2052,13 @@ console.debug('not _confirm', _confirm)
     async confirmSpsIsr(step) {
 
 
-      switch(step){
+      switch (step) {
 
         // 가입 여부
         case 0:
 
           // 보험 조정 기간이고 배우자 보험이 의무가 아니면 통과
-          if(this.bhdSlcChnYn && !this.spsEssYn) return false;
+          if (this.bhdSlcChnYn && !this.spsEssYn) return false;
 
           const r = await confirmMessage('배우자 보험 가입', `<b>배우자 보험 상품에 가입 하시나요?</b>
 <div>
@@ -1989,7 +2081,7 @@ console.debug('not _confirm', _confirm)
           // 부부 공무원 안내
           const res = await Swal.fire({
             icon: 'info',
-            title:'부부 공무원 단체보험 가입안내',
+            title: '부부 공무원 단체보험 가입안내',
             html: '각자 가입하세영',
             confirmButtonText: '네',
           })
@@ -2001,7 +2093,7 @@ console.debug('not _confirm', _confirm)
 
           console.debug('this.fmlInfo', this.fmlInfo, 'find', find)
 
-          if(!this.spsInfo?.validated && find){
+          if (!this.spsInfo?.validated && find) {
 
             const res = await Swal.fire({
               icon: 'question',
@@ -2014,7 +2106,7 @@ console.debug('not _confirm', _confirm)
 
             console.debug('this.fmlInfo', res)
 
-            if(res.isConfirmed){
+            if (res.isConfirmed) {
               this.spsInfo = find;
             }
 
@@ -2127,26 +2219,26 @@ console.debug('not _confirm', _confirm)
 
                 const checkName = await this.checkName(spsFnm, '1');
 
-                if(!checkName){
+                if (!checkName) {
                   return false;
                 }
 
                 const checkSsn = await this.checkFmlSsn(spsRrno, '1');
-                if(!checkSsn.valid){
+                if (!checkSsn.valid) {
                   return false;
                 }
 
-                if(!this.checkCellPhoneNo(spsTel)){
+                if (!this.checkCellPhoneNo(spsTel)) {
                   spsTel.focus()
                   return false;
                 }
 
-                this.sendLog("D", {spsFnm: spsFnm.value, spsRrno: this.hashidsHelper.encode(spsRrno.value), spsTel: spsTel.value})
+                this.sendLog("D", { spsFnm: spsFnm.value, spsRrno: this.hashidsHelper.encode(spsRrno.value), spsTel: spsTel.value })
 
-console.debug('this.selected', this.selected)
+                console.debug('this.selected', this.selected)
 
                 // 배우자 정보 변경
-                if(Object.values(this.selected).find(s=>s.isrrClCd === '1')){
+                if (Object.values(this.selected).find(s => s.isrrClCd === '1')) {
                   return await this.updateSpsIsr(spsFnm.value, spsRrno.value, spsTel.value);
                 }
 
@@ -2157,16 +2249,19 @@ console.debug('this.selected', this.selected)
 
                 if (_confirm.isConfirmed) {
 
-                  const {bornYear, tgrSxClCd, tgrAg, birthday} = calcSsn(spsRrno.value, this.bseYr);
+                  const { bornYear, tgrSxClCd, tgrAg, birthday } = calcSsn(spsRrno.value, this.bseYr);
 
                   this.spsInfo = new TgrInfo({
                     usrFnm: spsFnm.value,
                     rrno: spsRrno.value,
                     sxClCd: tgrSxClCd,
                     age: tgrAg,
+                    birthday: birthday,
                     isrrClCd: '1',
                     cellPhoneNo: spsTel.value
                   })
+
+                  this.spsInfo.validated = true;
 
                   await Swal.fire({
                     icon: 'success',
@@ -2187,7 +2282,7 @@ console.debug('this.selected', this.selected)
               callback: async () => {
 
                 // 배우자 정보변경 취소 아무것도 안함
-                if(this.spsInfo.validated){
+                if (this.spsInfo.validated) {
                   return true;
                 }
 
@@ -2199,15 +2294,15 @@ console.debug('this.selected', this.selected)
                   showCancelButton: true,
                 })
 
-                if(r.isConfirmed){
+                if (r.isConfirmed) {
                   this.spsInfo = null;
 
                   // 배우자 정보 변경되었을때 선택한 배우자 보험상품 초기화
-                  Object.values(this.selected).filter(s=>s.isrrClCd === '1')
-                    .forEach(s=> delete this.selected[s.isrPrdCd])
+                  Object.values(this.selected).filter(s => s.isrrClCd === '1')
+                    .forEach(s => delete this.selected[s.isrPrdCd])
 
                   return true;
-                }else{
+                } else {
                   return false;
                 }
 
@@ -2227,22 +2322,22 @@ console.debug('this.selected', this.selected)
      * @return {Promise<boolean>}
      */
     async validateChildRow(tr) {
-    
-console.debug('validateChildRow this.childInfo',  this.chldInfo)
+
+      console.debug('validateChildRow this.childInfo', this.chldInfo)
       const _id = tr.dataset.childId;
-      const _child = this.chldInfo.find(c=>c.tempId === _id);
-      
-console.debug('validateChildRow _id',  _id, _child, 'tr', tr, 'this.chldInfo',  this.chldInfo)
+      const _child = this.chldInfo.find(c => c.tempId === _id);
+
+      console.debug('validateChildRow _id', _id, _child, 'tr', tr, 'this.chldInfo', this.chldInfo)
 
       const childFnm = tr.querySelector('input[name=name1]');
-      
-console.debug('validateChildRow _child', childFnm.id, _child, childFnm.value)
+
+      console.debug('validateChildRow _child', childFnm.id, _child, childFnm.value)
 
       const checkName1 = await this.checkName(childFnm, '3', this.otherNames('3', childFnm));
 
-console.debug('validateChildRow checkName b', childFnm.id, checkName1, childFnm.value)
+      console.debug('validateChildRow checkName b', childFnm.id, checkName1, childFnm.value)
 
-      if(!checkName1){
+      if (!checkName1) {
         return false;
       }
 
@@ -2252,36 +2347,36 @@ console.debug('validateChildRow checkName b', childFnm.id, checkName1, childFnm.
 
       const childFile = tr.querySelector('input[name=file2]');
 
-console.debug('validateChildRow childRrno', childFnm.id, childRrno, childFnm.value)
-console.debug('validateChildRow childRrno', childFnm.id, childRrno, childFnm.value)
-console.debug('validateChildRow childCellphoneNo', childFnm.id, childCellphoneNo, childFnm.value)
-console.debug('validateChildRow childFile', childFnm.id, childFile, childFnm.value)
-      
+      console.debug('validateChildRow childRrno', childFnm.id, childRrno, childFnm.value)
+      console.debug('validateChildRow childRrno', childFnm.id, childRrno, childFnm.value)
+      console.debug('validateChildRow childCellphoneNo', childFnm.id, childCellphoneNo, childFnm.value)
+      console.debug('validateChildRow childFile', childFnm.id, childFile, childFnm.value)
+
       const checked = await this.checkFmlSsn(childRrno, '3', _child, this.otherRrnos(childRrno));
 
-console.debug('validateChildRow checked2', childFnm.id, checked, childFnm.value)
+      console.debug('validateChildRow checked2', childFnm.id, checked, childFnm.value)
 
-      if(!checked.valid){
+      if (!checked.valid) {
 
-        if(checked.data?.over14){
-          markingInvalid(childCellphoneNo,  false,'휴대전화 번호를 입력해 주세요');
+        if (checked.data?.over14) {
+          markingInvalid(childCellphoneNo, false, '휴대전화 번호를 입력해 주세요');
         }
 
-        if(checked.data?.over19){
+        if (checked.data?.over19) {
           markingInvalid(childFile, false, '증빙파일을 첨부해 주세요');
         }
         return false;
 
       }
 
-console.debug('validateChildRow checked2', childFnm.id, childCellphoneNo.value, childFnm.value)
+      console.debug('validateChildRow checked2', childFnm.id, childCellphoneNo.value, childFnm.value)
 
-      if(!childCellphoneNo && !childCellphoneNo.disabled && !this.checkCellPhoneNo(childCellphoneNo)){
-console.debug('validateChildRow checked2', childFnm.id, '', childCellphoneNo, childFnm.value)
+      if (!childCellphoneNo && !childCellphoneNo.disabled && !this.checkCellPhoneNo(childCellphoneNo)) {
+        console.debug('validateChildRow checked2', childFnm.id, '', childCellphoneNo, childFnm.value)
         return false;
       }
-      
-console.debug('validateChildRow ==> true', childFnm.id, childCellphoneNo, childFnm.value)
+
+      console.debug('validateChildRow ==> true', childFnm.id, childCellphoneNo, childFnm.value)
 
       return true;
 
@@ -2292,32 +2387,32 @@ console.debug('validateChildRow ==> true', childFnm.id, childCellphoneNo, childF
      * @param index {number|HTMLInputElement?}
      * @return {string[]}
      */
-    otherNames(isrrClCd, index){
+    otherNames(isrrClCd, index) {
 
-console.debug('otherNames', isrrClCd, 'index', index)
+      console.debug('otherNames', isrrClCd, 'index', index)
 
       let otherNames = [];
 
-      switch (isrrClCd){
+      switch (isrrClCd) {
         case '1':
 
-          otherNames = this.chldInfo?.filter(c=>c.validated).map(c=>c.usrFnm)
+          otherNames = this.chldInfo?.filter(c => c.validated).map(c => c.usrFnm)
           otherNames.push(this.pseInfo.usrFnm)
 
           return otherNames;
 
         case '3':
 
-          if(typeof index === 'number') {
+          if (typeof index === 'number') {
             otherNames = this.chldInfo?.filter((c, i) => i !== index).map(c => c.usrFnm)
-          }else{
+          } else {
             otherNames = Array.from(document
-              .querySelectorAll('input[name=name1]')).filter(i=> i.value && i !== index).map(e=>e.value)
+              .querySelectorAll('input[name=name1]')).filter(i => i.value && i !== index).map(e => e.value)
           }
 
           otherNames.push(this.pseInfo.usrFnm)
 
-          if(this.spsInfo?.validated){
+          if (this.spsInfo?.validated) {
             otherNames.push(this.spsInfo.usrFnm)
           }
 
@@ -2331,17 +2426,17 @@ console.debug('otherNames', isrrClCd, 'index', index)
      * @param index {number|HTMLInputElement}
      * @return {string[]}
      */
-    otherRrnos(index){
+    otherRrnos(index) {
 
       let otherRrnos_ = [];
 
-      if(typeof index === 'number') {
+      if (typeof index === 'number') {
         otherRrnos_ = this.chldInfo?.filter((c, i) => i !== index).map(c => c.rrno)
-      }else{
-        otherRrnos_ = Array.from(document.querySelectorAll('input[name=idnum1]')).filter(i=> i.value && i !== index).map(e=>e.value)
+      } else {
+        otherRrnos_ = Array.from(document.querySelectorAll('input[name=idnum1]')).filter(i => i.value && i !== index).map(e => e.value)
       }
 
-      if(this.spsInfo?.validated){
+      if (this.spsInfo?.validated) {
         otherRrnos_.push(this.spsInfo.rrno)
       }
 
@@ -2353,15 +2448,15 @@ console.debug('otherNames', isrrClCd, 'index', index)
      * @param child {TgrInfo}
      * @return {{child: {name: void | string, nameValidate: boolean, rrno: *, rrnoValidate: boolean, cellphoneNo: *, cellphoneNoValidate: boolean, updFileNo: *, updFileNoValidate: boolean}, check(*): void, checkChildRrno(*): Promise<undefined|boolean>, checkPhoneNo(*): void, isOver14: *, isOver19: boolean, birthday: string, tgrSxClCd: string, age: number, removeChild(*): void}|boolean}
      */
-    childData: (child)=>{
-      return{
-        init(){
-console.debug('childData init', this.child, child, 'this.chldInfo', this.chldInfo)
+    childData: (child) => {
+      return {
+        init() {
+          console.debug('childData init', this.child, child, 'this.chldInfo', this.chldInfo)
         },
         child,
-        check(el){
+        check(el) {
 
-          console.log('check',el.value, 'el', el, this.child)
+          console.log('check', el.value, 'el', el, this.child)
 
           if (!this.child.usrFnm) return;
 
@@ -2383,24 +2478,25 @@ console.debug('childData init', this.child, child, 'this.chldInfo', this.chldInf
 
           const checked = await this.checkFmlSsn(el, "3", this.child, this.otherRrnos(el))
 
-console.debug('checkChildRrno', checked)
+          console.debug('checkChildRrno', checked)
 
           if (checked.data?.birthday) {
             this.birthday = checked.data.birthday;
+            this.child.birthday = checked.data.birthday;
             this.child.sxClCd = checked.data.tgrSxClCd
             this.child.age = checked.data.tgrAg;
 
-            this.sxClCd = checked.data.tgrSxClCd === '1'?'남':'여'
+            this.sxClCd = checked.data.tgrSxClCd === '1' ? '남' : '여'
 
             this.isOver14 = this.child.age >= 14;
             this.isOver19 = checked.data.bornYear < this.wlfInst.chldIsrAgRstcYr
 
           }
 
-          if(checked.valid || checked.data?.over14 || checked.data?.over19 ){
+          if (checked.valid || checked.data?.over14 || checked.data?.over19) {
 
             // x-init에서 호출 했을때는 질문은 따로 띄워줄 필요가 없다.
-            if(isBatch){
+            if (isBatch) {
               this.rrnoValidate = true;
               markingInvalid(el)
               return true;
@@ -2415,6 +2511,10 @@ console.debug('checkChildRrno', checked)
 
 <table class="table table-striped">
   <tbody>
+  <tr>
+      <th scope="row">성명</th>
+      <td class="text-primary">${this.child.usrFnm}</td>
+    </tr>
     <tr>
       <th scope="row">주민번호</th>
       <td class="text-primary">${formatSsn(rrno, false)}</td>
@@ -2434,10 +2534,10 @@ console.debug('checkChildRrno', checked)
               cancelButtonText: '수정',
             })
 
-            if(r.isConfirmed){
+            if (r.isConfirmed) {
 
               //19세
-              if(checked.data?.over19){
+              if (checked.data?.over19) {
 
                 const r = await Swal.fire({
                   icon: 'warning',
@@ -2452,57 +2552,59 @@ console.debug('checkChildRrno', checked)
 
                 this.rrnoValidate = r.isConfirmed
 
-                if(r.isConfirmed){
+                if (r.isConfirmed) {
 
                   markingInvalid(el)
 
-                  setTimeout(()=>{
+                  setTimeout(() => {
 
-                      const phone2 = el.closest('div.row.child-row').querySelector('input[name=phone2]');
-                      const file2 = el.closest('div.row.child-row').querySelector('input[name=file2]');
+                    const phone2 = el.closest('div.row.child-row').querySelector('input[name=phone2]');
+                    const file2 = el.closest('div.row.child-row').querySelector('input[name=file2]');
 
-                      const driverStep = window.driver.js.driver({
-                        showProgress: true,
-                        steps:[
-                          {element: phone2
-                            , popover: {
-                              title: '휴대폰 번호를 입력해 주세요',
-                              description: '15세 이상 자녀인 경우 보험 가입을 위해서는 자녀의 <mark>개인정보 수집/이용 및 제3자 제공동의</mark>에 대한 동의가 필요합니다.',
-                              align: 'start',
-                              side: 'top',
-                            },
+                    const driverStep = window.driver.js.driver({
+                      showProgress: true,
+                      steps: [
+                        {
+                          element: phone2
+                          , popover: {
+                            title: '휴대폰 번호를 입력해 주세요',
+                            description: '15세 이상 자녀인 경우 보험 가입을 위해서는 자녀의 <mark>개인정보 수집/이용 및 제3자 제공동의</mark>에 대한 동의가 필요합니다.',
+                            align: 'start',
+                            side: 'top',
                           },
-                          {element: file2
-                            , popover:{
-                              title: '증빙파일 업로드',
-                              description: `${this.wlfInst.chldIsrAgRstcYr}년 1월 1일 이전 출생인 경우 장애가 있는 자녀만 가입이 가능하며,
+                        },
+                        {
+                          element: file2
+                          , popover: {
+                            title: '증빙파일 업로드',
+                            description: `${this.wlfInst.chldIsrAgRstcYr}년 1월 1일 이전 출생인 경우 장애가 있는 자녀만 가입이 가능하며,
 <mark>증빙서류(복지카드 사본, 장애인 증명서 등)</mark>가 필요합니다.`,
-                              align: 'start',
-                              side: 'top',
-                            },
+                            align: 'start',
+                            side: 'top',
                           },
-                        ],
-                        overlayOpacity: .3,
-                        prevBtnText: '이전',
-                        nextBtnText: '다음',
-                        doneBtnText: '확인',
-                      })
+                        },
+                      ],
+                      overlayOpacity: .3,
+                      prevBtnText: '이전',
+                      nextBtnText: '다음',
+                      doneBtnText: '확인',
+                    })
 
-                      driverStep.drive();
+                    driverStep.drive();
 
-                      phone2.focus()
-                    }
+                    phone2.focus()
+                  }
 
                     , 700)
 
                   return true;
-                }else{
+                } else {
 
 
                   return false;
                 }
 
-              }else if(checked.data?.over14){
+              } else if (checked.data?.over14) {
 
                 await Swal.fire({
                   icon: 'warning',
@@ -2515,22 +2617,22 @@ console.debug('checkChildRrno', checked)
 
                 this.rrnoValidate = true
 
-                setTimeout(()=>{
+                setTimeout(() => {
 
-                    const phone2 = el.closest('div.row.child-row').querySelector('input[name=phone2]');
+                  const phone2 = el.closest('div.row.child-row').querySelector('input[name=phone2]');
 
-                    this.driverObj.highlight({
-                      element: phone2,
-                      popover:{
-                        title: '휴대폰 번호를 입력해 주세요',
-                        description: '15세 이상 자녀인 경우 보험 가입을 위해서는 자녀의 <mark>개인정보 수집/이용 및 제3자 제공동의</mark>에 대한 동의가 필요합니다.',
-                        align: 'start',
-                        side: 'top',
-                      },
-                    })
+                  this.driverObj.highlight({
+                    element: phone2,
+                    popover: {
+                      title: '휴대폰 번호를 입력해 주세요',
+                      description: '15세 이상 자녀인 경우 보험 가입을 위해서는 자녀의 <mark>개인정보 수집/이용 및 제3자 제공동의</mark>에 대한 동의가 필요합니다.',
+                      align: 'start',
+                      side: 'top',
+                    },
+                  })
 
-                    phone2.focus()
-                  }
+                  phone2.focus()
+                }
 
                   , 700)
 
@@ -2550,7 +2652,7 @@ console.debug('checkChildRrno', checked)
 
               return true;
 
-            }else{
+            } else {
               this.rrnoValidate = false
               return false;
             }
@@ -2561,20 +2663,20 @@ console.debug('checkChildRrno', checked)
           return false;
 
         },
-        checkPhoneNo(evt){
+        checkPhoneNo(evt) {
 
           const el = evt.target;
 
-          if(el.value.length < 10){
+          if (el.value.length < 10) {
             markingInvalid(el, true, 'x')
           }
 
-          if(evt.key ==='Enter' || el.value.length === 11){
+          if (evt.key === 'Enter' || el.value.length === 11) {
             const valid = this.checkCellPhoneNo(el);
 
-            if(valid){
+            if (valid) {
               const tr0 = el.closest('div.row.child-row');
-              if(this.validateChildRow(tr0)){
+              if (this.validateChildRow(tr0)) {
                 const btn = document.querySelector('#btnAppendChild')
                 btn.classList.remove('disabled');
                 btn.focus()
@@ -2588,7 +2690,7 @@ console.debug('checkChildRrno', checked)
         sxClCd: '',
         isOver19: false,
         birthday: "",
-        removeChild(el){
+        removeChild(el) {
           Swal.fire({
             icon: 'question',
             title: `${this.child.usrFnm} 자녀 정보를 삭제 하시겠습니까?`,
@@ -2596,15 +2698,15 @@ console.debug('checkChildRrno', checked)
             showCancelButton: true,
             confirmButtonText: '삭제',
             cancelButtonText: '취소',
-          }).then(r=>{
-            if(r.isConfirmed){
+          }).then(r => {
+            if (r.isConfirmed) {
 
               //TODO: 보험 삭제
-console.debug('remove child', this.chldInfo, 'findIndex', this.chldInfo.findIndex(c=> c=== this.child))
+              console.debug('remove child', this.chldInfo, 'findIndex', this.chldInfo.findIndex(c => c === this.child))
 
-              this.chldInfo.splice(this.chldInfo.findIndex(c=> c=== this.child), 1)
+              this.chldInfo.splice(this.chldInfo.findIndex(c => c === this.child), 1)
 
-console.debug('remove child', this.chldInfo)
+              console.debug('remove child', this.chldInfo)
             }
 
           })
@@ -2615,26 +2717,26 @@ console.debug('remove child', this.chldInfo)
      * 자녀 추가
      */
     async appendChild() {
-    
-console.debug('appendChild')
-      
-      
+
+      console.debug('appendChild')
+
+
       let _result = true;
-      
+
       // 모든 row에 대해서 정합성 검사후 이상없을때만 추가
-      for(const tr of document.querySelectorAll('div.row.child-row')){
-        
+      for (const tr of document.querySelectorAll('div.row.child-row')) {
+
         const valid = await this.validateChildRow(tr);
         console.debug('appendChild valid', valid, tr)
-        if(!valid){
+        if (!valid) {
           _result = false;
         }
       }
-      
-console.debug('appendChild _result', _result)
 
-      if(_result){
-        this.chldInfo.push(new TgrInfo({isrrClCd: '3'}))
+      console.debug('appendChild _result', _result)
+
+      if (_result) {
+        this.chldInfo.push(new TgrInfo({ isrrClCd: '3' }))
       }
 
     },
@@ -2642,19 +2744,19 @@ console.debug('appendChild _result', _result)
      * 자녀 보험 삭제
      * @param tgrInfo {TgrInfo}
      */
-    deleteChildIsrPrd(tgrInfo){
-      if(this.selected){
-        Object.entries(this.selected).forEach(([key,value]) => {
-          if(Array.isArray(value)){
-            if(value[0].isrrClCd === tgrInfo.isrrClCd){
-              value.forEach((v, i)=>{
-                if(v.tgrRrno === tgrInfo.rrno){
-                  value.splice(i,1);
+    deleteChildIsrPrd(tgrInfo) {
+      if (this.selected) {
+        Object.entries(this.selected).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            if (value[0].isrrClCd === tgrInfo.isrrClCd) {
+              value.forEach((v, i) => {
+                if (v.tgrRrno === tgrInfo.rrno) {
+                  value.splice(i, 1);
                 }
               })
             }
-          }else{
-            if(value.isrrClCd === tgrInfo.isrrClCd && value.tgrRrno === tgrInfo.rrno){
+          } else {
+            if (value.isrrClCd === tgrInfo.isrrClCd && value.tgrRrno === tgrInfo.rrno) {
               delete this.selected.key
             }
           }
@@ -2665,7 +2767,7 @@ console.debug('appendChild _result', _result)
      * 모든 자녀 정보 삭제
      * @return {Promise<boolean>}
      */
-    async deleteAllChild(){
+    async deleteAllChild() {
 
       const r = await Swal.fire({
         icon: 'warning',
@@ -2676,17 +2778,17 @@ console.debug('appendChild _result', _result)
         cancelButtonText: '취소'
       })
 
-      if(r.isConfirmed){
+      if (r.isConfirmed) {
 
         this.chldInfo = null;
 
-        if(selected){
-          
+        if (selected) {
+
           //for(const s of )
-          
+
           Object.values(this.selected).flat()
-            .filter(s=> s.isrrClCd === '3')
-            .forEach(s=> delete selected[s.isrPrdCd])
+            .filter(s => s.isrrClCd === '3')
+            .forEach(s => delete selected[s.isrPrdCd])
         }
         console.log('btnDeleteAllChild this.selected', selected)
 
@@ -2694,6 +2796,13 @@ console.debug('appendChild _result', _result)
 
       return r.isConfirmed;
 
+    },
+    imageUpload(el) {
+
+      const _preview = el.parentElement.nextElementSibling.querySelector('div.preview')
+      if (!el.value || !el.files) return _preview.innerHTML = ''
+
+      return nxtUtil.imagePreview(el.files, _preview, false)
     },
     /**
      * 자녀 등록
@@ -2704,7 +2813,7 @@ console.debug('appendChild _result', _result)
      */
     async confirmChldIsr(step) {
 
-      switch (step){
+      switch (step) {
 
         // 가입여부 묻기
         case 0:
@@ -2712,7 +2821,7 @@ console.debug('appendChild _result', _result)
           return confirmMessage('자녀 보험 가입', `<b>자녀 보험 상품에 가입 하시나요?</b>
 <div>
   ${ask.childRegister(this.bseYr, this.wlfInst.chldIsrAgRstcYr)}
-</div>`).then(async  r => {
+</div>`).then(async r => {
             // 정보 입력
             if (r) {
 
@@ -2721,6 +2830,7 @@ console.debug('appendChild _result', _result)
               // 자녀 보험 가입 안함
             } else {
               this.chldInfo = null;
+              this.childDone = true;
 
               /*Object.entries(this.selected).flat().filter(s=>s.isrrClCd === '3')
                 .forEach(s=> delete s)*/
@@ -2738,7 +2848,7 @@ console.debug('appendChild _result', _result)
 
           console.debug('this.fmlInfo', this.fmlInfo, 'find', find)
 
-          if(find && find.length){
+          if (find && find.length) {
 
             const res = await Swal.fire({
               icon: 'question',
@@ -2751,18 +2861,16 @@ console.debug('appendChild _result', _result)
 
             console.debug('this.fmlInfo', res)
 
-            if(res.isConfirmed){
+            if (res.isConfirmed) {
               this.chldInfo = find;
             }
 
           }
 
           // 자녀 정보가 없으면 임시로 하나 만듬
-          if(!this.chldInfo || !this.chldInfo.length){
-            this.chldInfo = [new TgrInfo({isrrClCd:'3'})]
+          if (!this.chldInfo || !this.chldInfo.length) {
+            this.chldInfo = [new TgrInfo({ isrrClCd: '3' })]
           }
-          
-          
 
           return customConfirmMessage('자녀 정보를 입력해주세요', `<div class='row g-3 p-4'>
 
@@ -2835,7 +2943,7 @@ console.debug('appendChild _result', _result)
             <div class="invalid-feedback small" style="font-size: 0.7em"></div>
           </div>
           <div class="col-md-4">
-            <small x-show="child.rrnoValidate && birthday" x-transition style="font-size: .6em;">
+            <small x-show="birthday" x-transition style="font-size: .6em;">
               <div>생년월일: <b x-text="birthday"></b></div>
               <div>성별: <b x-text="sxClCd"></b></div>
             </small>
@@ -2870,9 +2978,7 @@ console.debug('appendChild _result', _result)
                   
                   $watch('isOver14', (value)=>{
                     if(value){
-console.debug('$watch(isOver14)===>', $el.id, value, $el.value, $el)
-                      const b = checkCellPhoneNo($el);
-console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
+                      checkCellPhoneNo($el);
                      }
                   })
                   
@@ -2892,15 +2998,11 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
               </label>
               <input type="file" :id="$id('file2', idx)" name="file2"
                  accept="image/*,.pdf,.doc,.docx,.hwp,.hwpx;capture=camera"
-                 :class="\`form-control\${(isOver19 && child.updFleNo)?' is-valid':' is-invalid animate__animated animate__headShake'}\`"
+                 :class="\`form-control\${(isOver19 && (child.updFleNo || child.files ))?' is-valid':' is-invalid animate__animated animate__headShake'}\`"
                  :disabled="!isOver19"
                  @change="async ()=>{
-                        const _preview = $el.parentElement.nextElementSibling.querySelector('div.preview')
-                        if(!$el.value) return _preview.innerHTML = ''
-                        await imagePreview($el.files, _preview, false)
+                        child.files = await imageUpload($el)
                         
-                        child.updFleNo = $el.files;
-
                         const tr0 = $el.closest('div.row.child-row')
                         if(validateChildRow(tr0)){
                           const btn = document.querySelector('button#btnAppendChild')
@@ -2971,22 +3073,16 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
             okButton: ({
               callback: async () => {
 
-                const rows = [];
-
-                for(const row of Array.from(document.querySelector('table#childRegTable').tBodies[0].rows)){
-
-                  if(row.classList.contains('table-primary')) continue;
+                for (const row of Array.from(document.querySelectorAll('div.row.child-row'))) {
 
                   const b = await this.validateChildRow(row)
 
-                  if(!b) return false;
-
-                  rows.push(row);
+                  if (!b) return false;
                 }
 
                 const res = await Swal.fire({
                   icon: 'question',
-                  title: `${rows.length} 명의 자녀를 등록 하시겠습니까?`,
+                  title: `${this.chldInfo.length} 명의 자녀를 등록 하시겠습니까?`,
                   allowOutsideClick: false,
                   allowEscapeKey: false,
                   showCancelButton: true,
@@ -2997,46 +3093,17 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
 
                 if (res.isConfirmed) {
 
-                  this.chldInfo = [];
+                  this.chldInfo.forEach(child => child.validated = true)
 
-                  rows.forEach(tr => {
-                    const childFnm = tr.querySelector('input[name=childFnm]');
-                    const childRrno = tr.querySelector('input[name=childRrno]');
+                  this.sendLog('I', { childInfo: this.chldInfo })
 
-                    const nextTr = tr.nextElementSibling;
-
-                    const childCellphoneNo = nextTr.querySelector('input[name=childCellphoneNo]');
-                    const childFile = nextTr.querySelector('input[name=childFile]');
-
-                    const {bornYear, tgrSxClCd, tgrAg, birthday} = calcSsn(childRrno.value, this.bseYr);
-
-                    const chld = new TgrInfo({
-                      usrFnm: childFnm.value,
-                      rrno: childRrno.value,
-                      sxClCd: tgrSxClCd,
-                      age: tgrAg,
-                      isrrClCd: '3',
-                      cellPhoneNo: childCellphoneNo.value,
-                      files: childFile.files,
-                    })
-
-                    this.chldInfo.push(chld)
-
-                  })
-
-                  this.sendLog('I', {childInfo: this.chldInfo})
-
-                  // 자녀보험 선택 내역 삭제
-                  Object.values(this.selected).flat().filter(s=>s.isrrClCd === '3')
-                    .forEach(s=> delete this.selected[s.isrPrdCd])
-
-                  if(this.dcnYn){
+                  if (this.dcnYn) {
                     this.makeQuestion();
                   }
 
                   return true;
 
-                }else{
+                } else {
                   return false;
                 }
               }
@@ -3044,25 +3111,6 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
             cancelButton: ({
               callback: async () => {
 
-                // 자녀정보 수정
-                if(this.chldInfo && this.chldInfo.length){
-
-                  const r = await Swal.fire({
-                    icon: 'question',
-                    title: '자녀 정보 변경을 취소 하시겠습니까?',
-                    text: '변경하신 정보가 반영되지 않습니다.',
-                    showCancelButton: true,
-                    confirmButtonText: '정보 변경 취소',
-                    cancelButtonText: '계속 등록',
-                  })
-
-                  if (r.isConfirmed) {
-                    this.makeQuestion();
-                    return true;
-                  }
-                }
-
-                // 최초 등록
                 const r1 = await Swal.fire({
                   icon: 'question',
                   title: '자녀 보험 상품 가입을 취소 하시겠습니까?',
@@ -3074,7 +3122,7 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
 
                 if (r1.isConfirmed) {
                   this.chldInfo = null;
-                  this.makeQuestion();
+                  //this.makeQuestion();
                   return true;
                 }
 
@@ -3104,14 +3152,14 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
       const tgrs = tgrInfos
         .filter((t) => (t.pseFnm && t.tgrRrno))
         .filter((t, idx) => tgrInfos.findIndex(tt => tt.tgrFnm === t.tgrFnm) === idx)
-        .filter(t=> calcSsn(t.tgrRrno, this.bseYr, true).tgrAg >=14)
+        .filter(t => calcSsn(t.tgrRrno, this.bseYr, true).tgrAg >= 14)
         // 이미 보낸 사람은 필터
         // 중복 기준 전화번호, 성명, 주민번호
-        .filter(t=>!this.storedData || !Object.values(this.storedData.stored).flat()
-          .filter(st=> st.cellPhoneNo)
-          .find(st=>st.cellPhoneNo === t.cellPhoneNo
-                  && st.tgrFnm === t.tgrFnm
-                  && this.hashidsHelper.decode(st.tgrRrno) === t.tgrRrno))
+        .filter(t => !this.storedData || !Object.values(this.storedData.stored).flat()
+          .filter(st => st.cellPhoneNo)
+          .find(st => st.cellPhoneNo === t.cellPhoneNo
+            && st.tgrFnm === t.tgrFnm
+            && this.hashidsHelper.decode(st.tgrRrno) === t.tgrRrno))
         .map(tgr => ({
           bseYr: this.bseYr,
           oprInstCd: this.wlfInst.oprInstCd,
@@ -3121,19 +3169,19 @@ console.debug('$watch(isOver14)=====>',b, $el.id, value, $el.value, $el)
           isrrClCd: tgr.isrrClCd,
         }));
 
-        tgrs?.forEach(t=>t.tgrRrno = this.hashidsHelper.decode(t.tgrRrno))
+      tgrs?.forEach(t => t.tgrRrno = this.hashidsHelper.decode(t.tgrRrno))
 
-console.log('tgrs', tgrs);
+      console.log('tgrs', tgrs);
 
-      if(this.testMode) return;
+      if (this.testMode) return;
 
-      if(!tgrs || !tgrs.length) return true;
+      if (!tgrs || !tgrs.length) return true;
 
-      this.sendLog("I", {action:'문자발송', 'sms': tgrs.map(t=>({tgrFnm: t.tgrFnm, tgrTelNo: t.tgrTelNo}))})
-        .then(r=>{
+      this.sendLog("I", { action: '문자발송', 'sms': tgrs.map(t => ({ tgrFnm: t.tgrFnm, tgrTelNo: t.tgrTelNo })) })
+        .then(r => {
           return fetch(`/wus/agr/r/bhdAgreeSms.jdo`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(tgrs)
           }).then(res => res.json())
             .then(res => {
@@ -3150,16 +3198,16 @@ console.log('tgrs', tgrs);
 <br>반드시 기간내에 제공동의를 완료해 주시기 바랍니다.`, 'info')
 
                 return true;
-              }else{
+              } else {
 
-                this.sendLog('E', {message: '문자발송실패', tgrs, res})
+                this.sendLog('E', { message: '문자발송실패', tgrs, res })
 
                 return false;
               }
 
             })
             .catch(err => {
-              this.sendLog('E', {message: '문자발송실패', tgrs, err})
+              this.sendLog('E', { message: '문자발송실패', tgrs, err })
               //this.throwException('개인정보 제공 동의 문자 발송 중 오류가 발생 하였습니다.');
               console.error(err)
             })
@@ -3167,16 +3215,16 @@ console.log('tgrs', tgrs);
 
     },
 
-    async uploadFiles(){
+    async uploadFiles() {
 
-      if(this.testMode) return;
+      if (this.testMode) return;
 
       const __files = Object.values(this.selected)
-        .flat().filter(s=>s.tgrFnm && s.files && s.files.length);
+        .flat().filter(s => s.tgrFnm && s.files && s.files.length);
 
-console.log('uploadFiles', __files)
+      console.log('uploadFiles', __files)
 
-      if(!__files || !__files.length) return;
+      if (!__files || !__files.length) return;
 
       const formData = new FormData();
 
@@ -3186,22 +3234,22 @@ console.log('uploadFiles', __files)
       __files.forEach((t, idx) => {
         formData.append('tgrRrnos', t.tgrRrno)
         formData.append('cerSeqs', idx)
-        Array.from(t.files).forEach(tt=>formData.append(`files${t.tgrRrno}`, tt))
+        Array.from(t.files).forEach(tt => formData.append(`files${t.tgrRrno}`, tt))
         //formData.append('files', blob, t.files)
       });
 
-      this.sendLog("I", {action:'파일업로드', 'files': __files.map(t=>Array.from(t.files).map((f, i)=>({cerSeqs: i, name: f.name, size: f.size})))})
-        .then(()=>{
+      this.sendLog("I", { action: '파일업로드', 'files': __files.map(t => Array.from(t.files).map((f, i) => ({ cerSeqs: i, name: f.name, size: f.size }))) })
+        .then(() => {
 
-          return fetch('/wus/uim/bsm/nxt/uploadChildDsbFile.jdo',{
+          return fetch('/wus/uim/bsm/nxt/uploadChildDsbFile.jdo', {
             method: 'POST',
             headers: {},
             body: formData,
-          }).then(r=>{
-console.log('업로드 요청 끝', r)
+          }).then(r => {
+            console.log('업로드 요청 끝', r)
             return true
           })
-            .catch(e=>{
+            .catch(e => {
               console.dir(this)
 
               console.dir(e)
@@ -3215,16 +3263,16 @@ console.log('업로드 요청 끝', r)
     /**
      * 통계용 cookie를 만듬
      */
-    bakeCookie(bhdSlcs){
+    bakeCookie(bhdSlcs) {
       // 통계용 cookie 만들기
       document.cookie = `token=${this.token};`
       document.cookie = `loaded=${this.loadtime};`
       document.cookie = `stored=${this.storedtime};`
       document.cookie = `dcnYn=${this.dcnYn};`
       document.cookie = `validated=${this.pseInfo.validated};`
-      document.cookie = `confirms=${this.pseInfo.confirms.map(t=>t.getTime?.()||t).join(',')};`
-      document.cookie = `noticeAgree=${this.pseInfo.noticeAgree.map(t=>t.getTime?.()||t).join(',')};`
-      if(bhdSlcs) document.cookie = `selected=${bhdSlcs.filter(s=>s.selectedTime).map(s =>`${s.isrPrdCd}_${s.selectedTime?.getTime?.()||s.selectedTime}`).join(',')};`
+      document.cookie = `confirms=${this.pseInfo.confirms.map(t => t.getTime?.() || t).join(',')};`
+      document.cookie = `noticeAgree=${this.pseInfo.noticeAgree.map(t => t.getTime?.() || t).join(',')};`
+      if (bhdSlcs) document.cookie = `selected=${bhdSlcs.filter(s => s.selectedTime).map(s => `${s.isrPrdCd}_${s.selectedTime?.getTime?.() || s.selectedTime}`).join(',')};`
       document.cookie = `maxAge=${60 * 60 * 24};`
     },
 
@@ -3235,7 +3283,7 @@ console.log('업로드 요청 끝', r)
      */
     async done() {
 
-console.log('done this.selected', this.selected)
+      console.log('done this.selected', this.selected)
 
       // 보험상품 다 선택했는지 체크
       const notSelect = this.checkNotSelected();
@@ -3249,7 +3297,7 @@ console.log('done this.selected', this.selected)
 
       const convertSelected = (isrPrd) => {
 
-        if(isrPrd.isrrClCd === '3'){
+        if (isrPrd.isrrClCd === '3') {
           console.log('isrPrd.tgrRrno', isrPrd.tgrRrno, this.bseYr, this.wlfInst.chldIsrAgRstcYr, '==>', calcSsn(isrPrd.tgrRrno, this.bseYr, true))
           console.log(' ====>', calcSsn(isrPrd.tgrRrno, this.bseYr, true).bornYear < parseInt(this.wlfInst.chldIsrAgRstcYr))
         }
@@ -3278,9 +3326,9 @@ console.log('done this.selected', this.selected)
           tgrFnm: isrPrd.tgrFnm ?? '',
           tgrAg: isrPrd.age ?? '',
           tgrSxClCd: isrPrd.sxClCd ?? '',
-          dsbYn:  (isrPrd.isrrClCd === '3'
-            && calcSsn(isrPrd.tgrRrno, this.bseYr, true).bornYear < parseInt(this.wlfInst.chldIsrAgRstcYr))?'Y':'N',
-        //tgrBrthDt: "19730201",
+          dsbYn: (isrPrd.isrrClCd === '3'
+            && calcSsn(isrPrd.tgrRrno, this.bseYr, true).bornYear < parseInt(this.wlfInst.chldIsrAgRstcYr)) ? 'Y' : 'N',
+          //tgrBrthDt: "19730201",
           olfDndIvgYn: isrPrd.olfDndIvgYn,
           xmpRegClCd: isrPrd.xmpRegClCd,
           mIsrUprCd: isrPrd.mIsrUprCd,
@@ -3312,22 +3360,22 @@ console.log('done this.selected', this.selected)
       console.log('this.storedData', this.storedData?.stored)
 
       // 파일 업로드
-      await this.sendLog("I", {action: '보험선택저장', '저장': bhdSlcs.filter(s=>s.tgrFnm).length, 'dcnYn':  this.dcnYn, 'taken': new Date().getTime() - this.storedtime})
-        .then(r=> {
-console.log('파일업로드 요청', r)
+      await this.sendLog("I", { action: '보험선택저장', '저장': bhdSlcs.filter(s => s.tgrFnm).length, 'dcnYn': this.dcnYn, 'taken': new Date().getTime() - this.storedtime })
+        .then(r => {
+          console.log('파일업로드 요청', r)
 
-          return this.uploadFiles().then(r=>true)
+          return this.uploadFiles().then(r => true)
         })
 
-console.log('파일업로드 요청 다음')
+      console.log('파일업로드 요청 다음')
 
       console.log('bhdSlcs', bhdSlcs)
 
 
       // 보험 선택 데이터가 변경되었는지 확인
-      if(this.storedData && !this.storedData.checkChanged(this.selected, (rrno)=>this.hashidsHelper.decode(rrno))){
+      if (this.storedData && !this.storedData.checkChanged(this.selected, (rrno) => this.hashidsHelper.decode(rrno))) {
 
-console.log('변경된 내용 없음', this.storedtime);
+        console.log('변경된 내용 없음', this.storedtime);
 
         // 문자 보내기
         this.sendSms(bhdSlcs.filter(s => s.cellPhoneNo))
@@ -3341,40 +3389,41 @@ console.log('변경된 내용 없음', this.storedtime);
       // 저장
       if (!this.testMode) {
 
-console.log('보험확정 시작')
+        console.log('보험확정 시작')
         this.isLoading = true;
         //loading();
 
         await fetch(`/wus/uim/bsm/nxt/store/${this.token}.jdo`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bhdSlcs)
         }).then(res => res.json())
           .then(data => {
             console.log('data', data);
 
-            this.sendLog("D", {action: '보험확정'
+            this.sendLog("D", {
+              action: '보험확정'
               , savNcnt: data
               , bseYr: this.bseYr
-              , dcnYn:  this.dcnYn?'Y':'N'
+              , dcnYn: this.dcnYn ? 'Y' : 'N'
               , oprInstCd: this.wlfInst.oprInstCd
               , mobileYn: this.mobileYn
               , scrnSz: window.screen.width
               , elpHr: new Date().getTime() - this.storedtime
             })
 
-console.log('보험확정 끝')
+            console.log('보험확정 끝')
 
             alertMessage('보험 확정', '보험 확정 데이터가 저장되었습니다.')
-              .then(()=>{
+              .then(() => {
 
-console.log('문자발송')
+                console.log('문자발송')
                 // 문자 보내기
                 this.sendSms(bhdSlcs.filter(s => s.cellPhoneNo))
                 this.setStep(5)
               })
 
-console.log('보험확정 다음')
+            console.log('보험확정 다음')
 
           })
           .catch(ex => {
@@ -3385,10 +3434,10 @@ console.log('보험확정 다음')
             console.error(ex);
           }).finally(() => this.isLoading = false);
 
-console.log('저장 끝')
+        console.log('저장 끝')
 
       } else {
-console.log('test모드 종료');
+        console.log('test모드 종료');
         // test 모드
         this.setStep(5);
       }
@@ -3406,7 +3455,7 @@ console.log('test모드 종료');
      * @param level {'W'|'E'}
      * @return {boolean}
      */
-    async throwException(message, ex, level='W') {
+    async throwException(message, ex, level = 'W') {
 
       const data = {
         message
@@ -3429,28 +3478,28 @@ console.log('test모드 종료');
      * @param data {object}
      * @param withMeta {boolean=false}
      */
-    sendLog(level, data, withMeta = false){
+    sendLog(level, data, withMeta = false) {
 
       console.log('sendLogs this', this.testMode, 'this', this)
 
-      if(!data.mobile) data.mobile = `${this.mobileYn}${window.screen.width}`
-      if(!data.token) data.token = this.token;
+      if (!data.mobile) data.mobile = `${this.mobileYn}${window.screen.width}`
+      if (!data.token) data.token = this.token;
 
-      const objectDiet = (obj)=>{
-        if(!obj) return null;
+      const objectDiet = (obj) => {
+        if (!obj) return null;
         let newObj = null;
-        for(const k in obj){
-          if(obj[k]){
+        for (const k in obj) {
+          if (obj[k]) {
             newObj = newObj ?? {}
-            if(obj[k] instanceof Object){
+            if (obj[k] instanceof Object) {
 
               newObj[k] = objectDiet(obj[k]);
 
-            }else if(obj[k] instanceof Array){
+            } else if (obj[k] instanceof Array) {
 
-              if(obj[k].length) newObj[k] = obj[k];
+              if (obj[k].length) newObj[k] = obj[k];
 
-            }else{
+            } else {
               newObj[k] = obj[k];
             }
           }
@@ -3458,34 +3507,34 @@ console.log('test모드 종료');
         return newObj;
       }
 
-      if(level==='W' || level==='E' || withMeta){
-        if(!data.pseInfo) data.pseInfo= objectDiet(this.pseInfo)
-        if(!data.wlfInst) data.wlfInst= objectDiet(this.wlfInst)
-        if(!data.selected) data.selected= objectDiet(this.selected)
-        if(!data.spsInfo) data.spsInfo= objectDiet(this.spsInfo)
-        if(!data.chldInfo) data.chldInfo= objectDiet(this.chldInfo)
+      if (level === 'W' || level === 'E' || withMeta) {
+        if (!data.pseInfo) data.pseInfo = objectDiet(this.pseInfo)
+        if (!data.wlfInst) data.wlfInst = objectDiet(this.wlfInst)
+        if (!data.selected) data.selected = objectDiet(this.selected)
+        if (!data.spsInfo) data.spsInfo = objectDiet(this.spsInfo)
+        if (!data.chldInfo) data.chldInfo = objectDiet(this.chldInfo)
       }
 
-      if(this.testMode){
+      if (this.testMode) {
 
-        if(level === 'D'){
+        if (level === 'D') {
           console.debug('보험선택 로그', level, data)
-        }else if(level === 'I'){
+        } else if (level === 'I') {
           console.log('보험선택 로그', level, data);
-        }else if(level === 'W'){
+        } else if (level === 'W') {
           console.warn('보험선택 로그', level, data);
-        }else if(level === 'E'){
+        } else if (level === 'E') {
           console.error('보험선택 로그', level, data);
           console.table(data)
         }
 
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
           setTimeout(resolve('로그 성공'), 600)
         });
 
-      }else{
+      } else {
 
-        if(!data.mobile) data.mobile = `N${window.screen.width}`
+        if (!data.mobile) data.mobile = `N${window.screen.width}`
 
         console.debug('보험로그 시작')
 
@@ -3496,12 +3545,12 @@ console.log('test모드 종료');
           },
           body: JSON.stringify(data)
         }).then(r => r.json())
-          .then(r =>{
-            console.debug('response', r, level, (r.toString()), (r=== '401' && level!=='W'));
+          .then(r => {
+            console.debug('response', r, level, (r.toString()), (r === '401' && level !== 'W'));
 
-            if(r=== '401' && (level==='I' || level==='D')) {
+            if (r === '401' && (level === 'I' || level === 'D')) {
               alertMessage('오류발생', '로그아웃 되었습니다.', 'danger')
-                .then((rr)=> {
+                .then((rr) => {
                   console.log(rr, window.opener)
                   window.document.location.reload()
                 });
@@ -3510,11 +3559,11 @@ console.log('test모드 종료');
             console.debug('보험로그 끝')
 
             return r
-          }).catch(r=>{
+          }).catch(r => {
             console.error(r);
 
-            if(level==='I' || level==='D'){
-              alertMessage('오류발생', r.message||'로그아웃 되었습니다.', 'danger')
+            if (level === 'I' || level === 'D') {
+              alertMessage('오류발생', r.message || '로그아웃 되었습니다.', 'danger')
             }
           })
       }
@@ -3540,9 +3589,9 @@ console.log('test모드 종료');
  *  , isrDtlCd, isrBgnDt: string, xmpRegClCd: (string|*)
  *  , tgrAg: (number|*|string), bseYr: null, wlfInstCd: null, essYn, fIsrSbcAmt}}
  */
-function convertSelected(isrPrd, bseYr, wlfInst, pseInfo, ignore=false){
+function convertSelected(isrPrd, bseYr, wlfInst, pseInfo, ignore = false) {
 
-  const {bornYear, tgrSxClCd, tgrAg, birthday} = calcSsn(isrPrd.tgrRrno, bseYr, true);
+  const { bornYear, tgrSxClCd, tgrAg, birthday } = calcSsn(isrPrd.tgrRrno, bseYr, true);
 
   return {
     bseYr: bseYr,
@@ -3562,7 +3611,7 @@ function convertSelected(isrPrd, bseYr, wlfInst, pseInfo, ignore=false){
     isrDtlNm: isrPrd.isrDtlNm,
     isrrClCd: isrPrd.isrrClCd,
     essYn: isrPrd.essYn,
-    useYn: ignore?'N':isrPrd.tgrFnm ? 'Y' : 'N',
+    useYn: ignore ? 'N' : isrPrd.useYn ? 'Y' : 'N',
     isrUprCd: isrPrd.isrUprCd,
     isrSbcAmt: isrPrd.isrSbcAmt,
     isrSbcScr: isrPrd.isrSbcScr,
@@ -3570,7 +3619,7 @@ function convertSelected(isrPrd, bseYr, wlfInst, pseInfo, ignore=false){
     tgrFnm: isrPrd.tgrFnm ?? '',
     tgrAg: isrPrd.age ?? '',
     tgrSxClCd: isrPrd.sxClCd ?? '',
-    dsbYn:  (isrPrd.isrrClCd === '3' && bornYear < parseInt(wlfInst.chldIsrAgRstcYr))?'Y':'N',
+    dsbYn: (isrPrd.isrrClCd === '3' && bornYear < parseInt(wlfInst.chldIsrAgRstcYr)) ? 'Y' : 'N',
     //tgrBrthDt: "19730201",
     olfDndIvgYn: isrPrd.olfDndIvgYn,
     xmpRegClCd: isrPrd.xmpRegClCd,
@@ -3581,7 +3630,7 @@ function convertSelected(isrPrd, bseYr, wlfInst, pseInfo, ignore=false){
     fIsrSbcAmt: isrPrd.fIsrSbcAmt,
     fIsrSbcScr: isrPrd.fIsrSbcScr,
     selectedTime: isrPrd.selectedTime,
-    cellPhoneNo: pseInfo.usrFnm?isrPrd.cellPhoneNo:'',
+    cellPhoneNo: pseInfo.usrFnm ? isrPrd.cellPhoneNo : '',
   }
 }
 
@@ -3678,7 +3727,7 @@ const infoMessage__ = function () {
         + (selected.isrSbcAmt ? floorAmt(selected.isrSbcAmt).toLocaleString() : 0) + '</td></tr>'
         + (selected.isrrClCd !== '0' ? fmlInfo(selected.tgrFnm, selected.tgrRrno, selected.isrrClCd) : '')
   })
-    .join('')}
+      .join('')}
   </tbody>
   <tfoot>
     <tr>
@@ -3723,7 +3772,7 @@ const infoMessage__ = function () {
   button.classList.add('btn', 'btn-md', 'btn-warning', 'mt-2', 'text-end');
   button.textContent = '재선택';
   button.addEventListener('click', (evt) =>this.init())
-
+ 
   buttonDiv.appendChild(button);*/
 
   const button2 = document.createElement('a');
@@ -3814,27 +3863,27 @@ function floorAmt(isrSbcAmt) {
  * 개인 정보 제공동의 문자 재발송
  * @param token {string}
  */
-function resendSms(token){
+function resendSms(token) {
 
-  if(!token) return;
-  if(token.length>500){
+  if (!token) return;
+  if (token.length > 500) {
     console.log('테스트 모드 문자 재발송 무시', token)
     return;
   }
 
   fetch(`/wus/agr/s/\${token}.jdo`)
-    .then(r=>r.json())
-    .then(r=>{
+    .then(r => r.json())
+    .then(r => {
 
-      if(r=='1'){
+      if (r == '1') {
         Swal.fire({
           icon: 'success',
-          title:'개인정보 제공동의 요청 SMS가 재발송 되었습니다.',
+          title: '개인정보 제공동의 요청 SMS가 재발송 되었습니다.',
           timer: 2000,
           timerProgressBar: true,
           confirmButtonText: '확인'
         })
-      }else{
+      } else {
 
         Swal.fire({
           icon: 'warning',
@@ -3845,7 +3894,7 @@ function resendSms(token){
       }
 
     })
-    .catch(e=>{
+    .catch(e => {
 
       Swal.fire({
         icon: 'error',
@@ -3865,34 +3914,34 @@ function resendSms(token){
  * @param valid {boolean=true}
  * @param message {string?} - 에러 메시지 valid가 true이고 message가 x이면 valid, invalid 모두 삭제
  */
-function markingInvalid(input, valid=true, message){
+function markingInvalid(input, valid = true, message) {
 
   const feedbackEl = input.parentElement.querySelector('.invalid-feedback');
 
-  if(!valid){
+  if (!valid) {
     input.classList.remove('is-valid', 'is-invalid', 'animate__animated', 'animate__headShake');
     input.classList.add('is-invalid', 'animate__animated', 'animate__headShake');
 
     //input.readOnly = false;
 
     window.navigator.vibrate?.([200])
-    console.log(' window.navigator.vibrate',  window.navigator.vibrate)
+    console.log(' window.navigator.vibrate', window.navigator.vibrate)
 
-    if(message){
-      if(feedbackEl){
+    if (message) {
+      if (feedbackEl) {
         feedbackEl.textContent = message;
       }
     }
 
     input.focus()
 
-  }else{
+  } else {
 
-    if(message === 'x'){
+    if (message === 'x') {
 
       input.classList.remove('is-invalid', 'animate__animated', 'animate__headShake', 'is-valid');
 
-    }else{
+    } else {
 
       input.classList.remove('is-invalid', 'animate__animated', 'animate__headShake');
       input.classList.add('is-valid');

@@ -1,86 +1,98 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" data-bs-theme="light">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="description" content="맞춤형복지 보험선택"/>
-  <meta name="author" content="공무원연금공단 맞춤형복지"/>
-  <title>맞춤형복지 보험선택</title>
-  <meta property="og:title" content="맞춤형복지 보험선택"/>
-  <meta property="og:description" content="공무원연금공단 맞춤형복지 보험선택"/>
-  <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://www.gwp.or.kr"/>
-  <meta property="og:image" content="https://www.gwp.or.kr/images/geps_mascot.png"/>
-  <link rel="icon" href="https://www.gwp.or.kr/images/coprn/favicon/geps_favicon.png"/>
 
-  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/bootstrap/v5.3.3/bootstrap.min.css"/>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="맞춤형복지 보험선택" />
+  <meta name="author" content="공무원연금공단 맞춤형복지" />
+  <title>맞춤형복지 보험선택</title>
+  <meta property="og:title" content="맞춤형복지 보험선택" />
+  <meta property="og:description" content="공무원연금공단 맞춤형복지 보험선택" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.gwp.or.kr" />
+  <meta property="og:image" content="https://www.gwp.or.kr/images/geps_mascot.png" />
+  <link rel="icon" href="https://www.gwp.or.kr/images/coprn/favicon/geps_favicon.png" />
+
+  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/bootstrap/v5.3.3/bootstrap.min.css" />
   <link href=" https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css " rel="stylesheet">
 
-  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/bootstrap/stepper/v1.7/bs-stepper.min.css"/>
+  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/bootstrap/stepper/v1.7/bs-stepper.min.css" />
 
-  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/animate/animate.4.1.1.min.css"/>
-  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/driverjs/v136/driver.1.3.6.css"/>
+  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/animate/animate.4.1.1.min.css" />
+  <link rel="stylesheet" href="https://www.gwp.or.kr/js/lib/driverjs/v136/driver.1.3.6.css" />
 
   <style>
-    .info-message{
+    .info-message {
       font-size: 1.3em;
     }
-    div.preview image{
+
+    div.preview image {
       max-height: 100px;
       max-width: 90%;
     }
-    b,strong{
+
+    b,
+    strong {
       font-weight: 600;
     }
-    sup{
 
-    }
-   dfn{
-    }
-    abbr{
+    sup {}
+
+    dfn {}
+
+    abbr {
       color: var(--bs-primary);
     }
-    blockquote{
+
+    blockquote {
       color: var(--bs-secondary)
     }
-    .custom-tooltip{
+
+    .custom-tooltip {
       --bs-tooltip-bg: var(--bs-info-bg-subtle);
       --bs-tooltip-color: var(--bs-black);
       --bs-tooltip-padding-x: 6px;
       --bs-tooltip-padding-y: 6px;
     }
-    .focusable{
+
+    .focusable {
       animation: breath-shadow 1s ease-in-out .1s infinite alternate;
     }
+
     @keyframes breath-shadow {
-      0%{
+      0% {
         box-shadow: 0 0 0 .25rem rgba(var(--bs-success-rgb), .05)
       }
-      100%{
+
+      100% {
         box-shadow: 0 0 0 .25rem rgba(var(--bs-warning-rgb), .55)
       }
     }
-    .box{
-        opacity: 0;
-        transition: all 1s;
-        /*background-color: var(--bs-warning-bg-subtle);*/
-        /*color: var(--bs-secondary);*/
+
+    .box {
+      opacity: 0;
+      transition: all 1s;
+      /*background-color: var(--bs-warning-bg-subtle);*/
+      /*color: var(--bs-secondary);*/
 
     }
-    .box.in{
-        opacity: 1;
+
+    .box.in {
+      opacity: 1;
     }
-    div.step.active span.bs-stepper-label{
+
+    div.step.active span.bs-stepper-label {
       font-weight: bolder;
       color: var(--bs-primary)
     }
-
   </style>
 
 </head>
+
 <body x-data="processor">
 
-<!--<th:block th:if="${not #strings.isEmpty(alertMessage)}">
+  <!--<th:block th:if="${not #strings.isEmpty(alertMessage)}">
   &lt;!&ndash;메세지가 있는경우 메세지 출력하고 닫기&ndash;&gt;
   <script th:inline="javascript">
     alert('[[${alertMessage}]]');
@@ -89,219 +101,219 @@
 </th:block>-->
 
 
-<header>
-  <div class="container d-flex align-items-center justify-content-between p-3 mb-3 custom-border-bottom">
-    <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
-      <img class="logo" src="https://www.gwp.or.kr/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40" style="margin-top: 8px"/>
-      <span class="ms-2 fs-4 word-wrap">맞춤형복지 보험선택</span>
-    </a>
-
-    <div class="align-bottom">
-      <a :href="`/wus/uim/bsm/bhdSlcView.jdo?bseYr=${bseYr}&token=${token}&w=100`" target="_blank" class="btn btn-outline-secondary"
-         x-init="new bootstrap.Tooltip($el)"
-          data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="left"
-          data-bs-title="공단의 마스코드 믿음이가 마치 카카오톡으로 대화를 하는 것처험
-차례 차례 보험선택을 진행할 수 있도록 안내해드립니다.">
-        <img src="https://www.gwp.or.kr/js/lib/bot/img/users/geps.gif" class="rounded-5 shadow-sm" style="width: 40px"
-             alt="챗봇 방식으로 전환">챗봇 형식으로 전환
+  <header>
+    <div class="container d-flex align-items-center justify-content-between p-3 mb-3 custom-border-bottom">
+      <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+        <img class="logo" src="https://www.gwp.or.kr/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40"
+          style="margin-top: 8px" />
+        <span class="ms-2 fs-4 word-wrap">맞춤형복지 보험선택</span>
       </a>
+
+      <div class="align-bottom">
+        <a :href="`/wus/uim/bsm/bhdSlcView.jdo?bseYr=${bseYr}&token=${token}&w=100`" target="_blank"
+          class="btn btn-outline-secondary" x-init="new bootstrap.Tooltip($el)" data-bs-toggle="tooltip"
+          data-bs-html="true" data-bs-placement="left" data-bs-title="공단의 마스코드 믿음이가 마치 카카오톡으로 대화를 하는 것처험
+차례 차례 보험선택을 진행할 수 있도록 안내해드립니다.">
+          <img src="https://www.gwp.or.kr/js/lib/bot/img/users/geps.gif" class="rounded-5 shadow-sm" style="width: 40px"
+            alt="챗봇 방식으로 전환">챗봇 형식으로 전환
+        </a>
+      </div>
     </div>
-  </div>
-</header>
-<main>
-  <div class="container">
-    <!-- 처음 modal -->
-    <div class="modal fade" tabindex="-1" id="modal">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title fw-bold" x-text="`맞춤형복지 ${bseYr}년도 보험선택`">
-              <img class="logo" src="https://www.gwp.or.kr/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40"/>
+  </header>
+  <main>
+    <div class="container">
+      <!-- 처음 modal -->
+      <div class="modal fade" tabindex="-1" id="modal">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" x-text="`맞춤형복지 ${bseYr}년도 보험선택`">
+                <img class="logo" src="https://www.gwp.or.kr/js/lib/bot/img/logo.png" alt="공무원 연금공단" height="40" />
               </h5>
-            <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
-          </div>
-          <div class="modal-body">
-            <div class="row">
-              <div class="col-4 d-flex align-items-center">
-              <th:block th:if="${isKmin}">
-                <img src="/images/kkminkyung56.png" alt="믿음이와 동행이" width="100%"/>
-              </th:block>
-              <th:block th:unless="${isKmin}">
-                <img src="https://www.gwp.or.kr/js/lib/bot/img/geps_mascot.png" alt="믿음이와 동행이" width="100%"/>
-              </th:block>
-              </div>
-              <div class="col-8">
-
-                <th:block th:if="${bhdSlcChnYn == 'Y'}">
-                  <p x-html="`공무원연금공단 맞춤형복지 <b>${bseYr}년도 의료비 보장 보험 조정</b>기간 입니다.`"></p>
-                  <!--<p x-text="`${bseYr}년도 보험선택 안내사항`"></p>-->
-                  <div class="border rounded bg-warning-subtle">
-                    <ul style="font-size: 1em;">
-                      <li class="py-1 mt-2">
-                        <strong>의료비 보장 보험 조정기간:</strong>
-                        [[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcChnBgnDt, 0, 4), #strings.substring(wlfInst.bhdSlcChnBgnDt, 4, 6), #strings.substring(wlfInst.bhdSlcChnBgnDt, 6, 8)), 'yyyy-MM-dd(E)')}]]
-                        ~[[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcChnNdDt, 0, 4), #strings.substring(wlfInst.bhdSlcChnNdDt, 4, 6), #strings.substring(wlfInst.bhdSlcChnNdDt, 6, 8)), 'yyyy-MM-dd(E)')}]]
-                      </li>
-                      <li class="py-1">[[${bseYr}]]년도 보험선택 완료자(<small>기본보험 일괄적용 대상자 포함</small>)에 한하여 기간내에 의료비 보장 보험을 조정할 수 있습니다.</li>
-                      <li class="py-1">의료비 보장보험(실손)외 다른 보험 상품(생명/상해, 특정질병 진단비 등)은 변경할 수 없습니다.</li>
-                      <li class="py-1"><span class="text-primary">표시되는 보험료는 <b>예상보험료</b>로 최종보험료는 계약체결 후 확정됩니다.</span></li>
-                      <li class="py-1"><span class="text-primary">배우자와 15세 이상 자녀(2011.12.31. 이전 출생자)의 의료비 보장 보험 가입 시 개인정보
-                        수집·이용 및 제3자(보험사) <strong>제공 동의 절차가 완료</strong>되어야만 최종 가입이 완료됩니다.</span>
-                      </li>
-                    </ul>
-                  </div>
-                </th:block>
-
-                <th:block th:if="${bhdSlcChnYn != 'Y'}">
-
-                <p x-html="`공무원연금공단 맞춤형복지 <b>${bseYr}년도 보험선택</b>을 시작합니다.`"></p>
-                <!--<p x-text="`${bseYr}년도 보험선택 안내사항`"></p>-->
-                <div class="border rounded bg-warning-subtle">
-                  <ul style="font-size: 1em;">
-                    <li class="py-1 mt-2">
-                      <strong>[[${bseYr}]]년도 단체보험 선택기간:</strong>
-                      [[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcBgnDt, 0, 4), #strings.substring(wlfInst.bhdSlcBgnDt, 4, 6), #strings.substring(wlfInst.bhdSlcBgnDt, 6, 8)), 'yyyy-MM-dd(E)')}]]
-                      ~[[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcNdDt, 0, 4), #strings.substring(wlfInst.bhdSlcNdDt, 4, 6), #strings.substring(wlfInst.bhdSlcNdDt, 6, 8)), 'yyyy-MM-dd(E)')}]]
-                    </li>
-                    <li class="py-1">기간 내에 보험을 선택하지 않은 경우에는 <b>기본보험(기관최저보장보험)</b>으로 가입됩니다.</li>
-                    <li class="py-1">선택하신 보험은 [[${wlfInst.isrBgnDt}]]일부터 [[${wlfInst.isrNdDt}]]일까지 적용될 예정입니다.</li>
-                    <li class="py-1"
-                        x-text="`${parseInt(bseYr)-1}년 퇴직 예정자는 ${bseYr}년도 단체보험 적용을 받지 않으므로 보험선택 대상자가 아닙니다.`"></li>
-                    <li class="py-1">[[${bseYr}]]년도 휴직자는 개인의 보험선택 결과와 무관하게 소속기관에서 정한 <b>'휴직후 적용보험'</b>을 적용합니다.</li>
-                    <li class="py-1"><span class="text-primary">표시되는 보험료는 <b>예상보험료</b>로 최종보험료는 계약체결 후 확정됩니다.</span></li>
-                  </ul>
+              <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-4 d-flex align-items-center">
+                  <th:block th:if="${isKmin}">
+                    <img src="/images/kkminkyung56.png" alt="믿음이와 동행이" width="100%" />
+                  </th:block>
+                  <th:block th:unless="${isKmin}">
+                    <img src="https://www.gwp.or.kr/js/lib/bot/img/geps_mascot.png" alt="믿음이와 동행이" width="100%" />
+                  </th:block>
                 </div>
+                <div class="col-8">
 
-                </th:block>
+                  <th:block th:if="${bhdSlcChnYn == 'Y'}">
+                    <p x-html="`공무원연금공단 맞춤형복지 <b>${bseYr}년도 의료비 보장 보험 조정</b>기간 입니다.`"></p>
+                    <!--<p x-text="`${bseYr}년도 보험선택 안내사항`"></p>-->
+                    <div class="border rounded bg-warning-subtle">
+                      <ul style="font-size: 1em;">
+                        <li class="py-1 mt-2">
+                          <strong>의료비 보장 보험 조정기간:</strong>
+                          [[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcChnBgnDt, 0, 4),
+                          #strings.substring(wlfInst.bhdSlcChnBgnDt, 4, 6), #strings.substring(wlfInst.bhdSlcChnBgnDt,
+                          6, 8)), 'yyyy-MM-dd(E)')}]]
+                          ~[[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcChnNdDt, 0, 4),
+                          #strings.substring(wlfInst.bhdSlcChnNdDt, 4, 6), #strings.substring(wlfInst.bhdSlcChnNdDt, 6,
+                          8)), 'yyyy-MM-dd(E)')}]]
+                        </li>
+                        <li class="py-1">[[${bseYr}]]년도 보험선택 완료자(<small>기본보험 일괄적용 대상자 포함</small>)에 한하여 기간내에 의료비 보장 보험을
+                          조정할 수 있습니다.</li>
+                        <li class="py-1">의료비 보장보험(실손)외 다른 보험 상품(생명/상해, 특정질병 진단비 등)은 변경할 수 없습니다.</li>
+                        <li class="py-1"><span class="text-primary">표시되는 보험료는 <b>예상보험료</b>로 최종보험료는 계약체결 후 확정됩니다.</span>
+                        </li>
+                        <li class="py-1"><span class="text-primary">배우자와 15세 이상 자녀(2011.12.31. 이전 출생자)의 의료비 보장 보험 가입 시
+                            개인정보
+                            수집·이용 및 제3자(보험사) <strong>제공 동의 절차가 완료</strong>되어야만 최종 가입이 완료됩니다.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </th:block>
 
+                  <th:block th:if="${bhdSlcChnYn != 'Y'}">
+
+                    <p x-html="`공무원연금공단 맞춤형복지 <b>${bseYr}년도 보험선택</b>을 시작합니다.`"></p>
+                    <!--<p x-text="`${bseYr}년도 보험선택 안내사항`"></p>-->
+                    <div class="border rounded bg-warning-subtle">
+                      <ul style="font-size: 1em;">
+                        <li class="py-1 mt-2">
+                          <strong>[[${bseYr}]]년도 단체보험 선택기간:</strong>
+                          [[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcBgnDt, 0, 4),
+                          #strings.substring(wlfInst.bhdSlcBgnDt, 4, 6), #strings.substring(wlfInst.bhdSlcBgnDt, 6, 8)),
+                          'yyyy-MM-dd(E)')}]]
+                          ~[[${#dates.format(#dates.create(#strings.substring(wlfInst.bhdSlcNdDt, 0, 4),
+                          #strings.substring(wlfInst.bhdSlcNdDt, 4, 6), #strings.substring(wlfInst.bhdSlcNdDt, 6, 8)),
+                          'yyyy-MM-dd(E)')}]]
+                        </li>
+                        <li class="py-1">기간 내에 보험을 선택하지 않은 경우에는 <b>기본보험(기관최저보장보험)</b>으로 가입됩니다.</li>
+                        <li class="py-1">선택하신 보험은 [[${wlfInst.isrBgnDt}]]일부터 [[${wlfInst.isrNdDt}]]일까지 적용될 예정입니다.</li>
+                        <li class="py-1"
+                          x-text="`${parseInt(bseYr)-1}년 퇴직 예정자는 ${bseYr}년도 단체보험 적용을 받지 않으므로 보험선택 대상자가 아닙니다.`"></li>
+                        <li class="py-1">[[${bseYr}]]년도 휴직자는 개인의 보험선택 결과와 무관하게 소속기관에서 정한 <b>'휴직후 적용보험'</b>을 적용합니다.</li>
+                        <li class="py-1"><span class="text-primary">표시되는 보험료는 <b>예상보험료</b>로 최종보험료는 계약체결 후 확정됩니다.</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                  </th:block>
+
+                </div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-lg btn-primary w-25" data-bs-dismiss="modal"
-                :disabled="current === -2">
-              <span class="spinner-border spinner-border-sm" aria-hidden="true" x-show="current === -2"></span>
-              <span role="status" x-text="current === -2?'데이터를 가져오고있습니다':'확인'" ></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!--// modal -->
-
-    <!-- alert와 confirm을 위한 modal -->
-    <div class="modal fade" tabindex="-1" id="infoModal">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h4 class="modal-title"></h4>
-            <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
-          </div>
-          <div class="modal-body">
-            <div class="row">
-              <div class="col info-message"></div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-md btn-primary w-25" data-bs-dismiss="modal">확인</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!--// modal -->
-
-    <div class="card">
-      <!-- 상단 stepper  -->
-      <div class="card-header" style="z-index: 1030">
-        <div class="bs-stepper">
-
-          <div class="bs-stepper-header" role="tablist">
-            <div :class="`step ${step===1?'active':''}`">
-              <button class="step-trigger pe-none" role="tab"
-                      :disabled="pseInfo.validated">
-                <span class="bs-stepper-circle bi bi-person-lock"></span>
-                <span class="bs-stepper-label">본인확인</span>
+            <div class="modal-footer">
+              <button class="btn btn-lg btn-primary w-25" data-bs-dismiss="modal" :disabled="current === -2">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true" x-show="current === -2"></span>
+                <span role="status" x-text="current === -2?'데이터를 가져오고있습니다':'확인'"></span>
               </button>
             </div>
-            <div class="line"></div>
-            <div :class="`step ${step===2?'active':''}`">
-              <button class="step-trigger" role="tab"
-                      :disabled="!pseInfo?.validated || realStep<2"
-                      @click="()=>{
+          </div>
+        </div>
+      </div>
+      <!--// modal -->
+
+      <!-- alert와 confirm을 위한 modal -->
+      <div class="modal fade" tabindex="-1" id="infoModal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title"></h4>
+              <!--<button class="btn-close" data-bs-dismiss="modal" aria-label="확인"></button>-->
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col info-message"></div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-md btn-primary w-25" data-bs-dismiss="modal">확인</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!--// modal -->
+
+      <div class="card">
+        <!-- 상단 stepper  -->
+        <div class="card-header" style="z-index: 1030">
+          <div class="bs-stepper">
+
+            <div class="bs-stepper-header" role="tablist">
+              <div :class="`step ${step===1?'active':''}`">
+                <button class="step-trigger pe-none" role="tab" :disabled="pseInfo.validated">
+                  <span class="bs-stepper-circle bi bi-person-lock"></span>
+                  <span class="bs-stepper-label">본인확인</span>
+                </button>
+              </div>
+              <div class="line"></div>
+              <div :class="`step ${step===2?'active':''}`">
+                <button class="step-trigger" role="tab" :disabled="!pseInfo?.validated || realStep<2" @click="()=>{
                           setStep(2)
                           confirmPrivacy()
                         }">
-                <span class="bs-stepper-circle bi bi-list-check"></span>
-                <span class="bs-stepper-label">유의사항 확인</span>
-              </button>
-            </div>
-            <div class="line"></div>
-            <div :class="`step ${step===3?'active':''}`">
-              <button class="step-trigger" role="tab"
-                    :disabled="!pseInfo?.validated || realStep===5 || realStep<3 "
-                    @click="()=>{
+                  <span class="bs-stepper-circle bi bi-list-check"></span>
+                  <span class="bs-stepper-label">유의사항 확인</span>
+                </button>
+              </div>
+              <div class="line"></div>
+              <div :class="`step ${step===3?'active':''}`">
+                <button class="step-trigger" role="tab" :disabled="!pseInfo?.validated || realStep===5 || realStep<3 "
+                  @click="()=>{
                       setStep(3);
                       doQuestion()
-                    }"
-                  >
-                <span class="bs-stepper-circle bi bi-card-list"></span>
-                <span class="bs-stepper-label">보험선택</span>
-              </button>
-            </div>
-            <div class="line"></div>
-            <div :class="`step ${step===4?'active':''}`">
-              <button class="step-trigger" role="tab"
-                  :disabled="!pseInfo?.validated || realStep<4"
-                  @click="setStep(4)"
-              >
-                <span class="bs-stepper-circle bi bi-card-checklist"></span>
-                <span class="bs-stepper-label">선택결과</span>
-              </button>
-            </div>
-            <div class="line"></div>
-            <div :class="`step ${step===5?'active':''}`">
-              <button class="step-trigger" role="tab" :disabled="realStep<5"
-                      @click="setStep(5)"
-              >
-                <span class="bs-stepper-circle bi bi-database-lock"></span>
-                <span class="bs-stepper-label">보험확정</span>
-              </button>
+                    }">
+                  <span class="bs-stepper-circle bi bi-card-list"></span>
+                  <span class="bs-stepper-label">보험선택</span>
+                </button>
+              </div>
+              <div class="line"></div>
+              <div :class="`step ${step===4?'active':''}`">
+                <button class="step-trigger" role="tab" :disabled="!pseInfo?.validated || realStep<4"
+                  @click="setStep(4)">
+                  <span class="bs-stepper-circle bi bi-card-checklist"></span>
+                  <span class="bs-stepper-label">선택결과</span>
+                </button>
+              </div>
+              <div class="line"></div>
+              <div :class="`step ${step===5?'active':''}`">
+                <button class="step-trigger" role="tab" :disabled="realStep<5" @click="setStep(5)">
+                  <span class="bs-stepper-circle bi bi-database-lock"></span>
+                  <span class="bs-stepper-label">보험확정</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="card-body  d-flex justify-content-center align-items-center" id="messages"
-           x-ref="messages" style="min-height: 50vh;">
+        <div class="card-body  d-flex justify-content-center align-items-center" id="messages" x-ref="messages"
+          style="min-height: 50vh;">
+        </div>
       </div>
     </div>
-  </div>
-</main>
-<footer class="py-3">
-  <div class="container custom-border-top pt-3" style="color: #556677">
-    (63568)제주특별자치도 서귀포시 서호중앙로 <span @dblclick="window.open(`/wus/uim/bsm/bhdSlcView.jdo?bseYr=${bseYr}&token=${token}&w=100`)">63(서호동)</span><br/>
-    Copyright(c) GEPS. All Right Reserved.
-  </div>
-</footer>
+  </main>
+  <footer class="py-3">
+    <div class="container custom-border-top pt-3" style="color: #556677">
+      (63568)제주특별자치도 서귀포시 서호중앙로 <span
+        @dblclick="window.open(`/wus/uim/bsm/bhdSlcView.jdo?bseYr=${bseYr}&token=${token}&w=100`)">63(서호동)</span><br />
+      Copyright(c) GEPS. All Right Reserved.
+    </div>
+  </footer>
 
-<!-- 본인확인 -->
-<template x-teleport="#messages">
-  <div class="container border rounded-4 shadow p-5" style="max-width: 800px"
-       x-show="step===1"
-       x-transition.opacity.1000ms
-  >
-    <h4>🔐 보험선택에 앞서 본인확인을 시작합니다.</h4>
-    <div class="row mt-5">
-      <div class="border rounded p-3 my-3 bg-warning-subtle fw-bold">
-        본인 확인을 위해서 성명과 주민번호를 입력해주세요<br>
-        본인의 정보와 다른 경우 공단(📞<a href="tel:1588-4321">1588-4321</a>)로 연락바랍니다.
-      </div>
-      <div class="fs-5" x-html="`<b>근무처:</b> ${wlfInst.wlfInstNm}`"> </div>
-      <div class="row mt-2">
-        <div class="col">
-          <label for="usrFnm">성명</label>
-          <input type="text" class="form-control form-control-lg" id="usrFnm" placeholder="성명을 입력하세요"
-                 x-ref="usrFnm"
-                 @blur="()=>{
+  <!-- 본인확인 -->
+  <template x-teleport="#messages">
+    <div class="container border rounded-4 shadow p-5" style="max-width: 800px" x-show="step===1"
+      x-transition.opacity.1000ms>
+      <h4>🔐 보험선택에 앞서 본인확인을 시작합니다.</h4>
+      <div class="row mt-5">
+        <div class="border rounded p-3 my-3 bg-warning-subtle fw-bold">
+          본인 확인을 위해서 성명과 주민번호를 입력해주세요<br>
+          본인의 정보와 다른 경우 공단(📞<a href="tel:1588-4321">1588-4321</a>)로 연락바랍니다.
+        </div>
+        <div class="fs-5" x-html="`<b>근무처:</b> ${wlfInst.wlfInstNm}`"> </div>
+        <div class="row mt-2">
+          <div class="col">
+            <label for="usrFnm">성명</label>
+            <input type="text" class="form-control form-control-lg" id="usrFnm" placeholder="성명을 입력하세요" x-ref="usrFnm"
+              @blur="()=>{
                   if($el.value === pseInfo.usrFnm){
                     $el.classList.remove('is-invalid', 'animate__animated', 'animate__headShake')
                     $el.classList.add('is-valid')
@@ -312,15 +324,14 @@
                     if($el.value) $el.classList.add('is-invalid', 'animate__animated', 'animate__headShake')
                     pseInfo.validated = false;
                   }
-                 }"
-                 required>
-          <div class="invalid-feedback">성명을 정확히 입력해주세요</div>
-        </div>
-        <div class="col">
-          <label for="usrRrno">주민번호</label>
-          <input type="text" class="form-control form-control-lg" id="usrRrno" x-ref="usrRrno"
-                 x-init="Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);"
-                 @keyup="(evt)=>{
+                 }" required>
+            <div class="invalid-feedback">성명을 정확히 입력해주세요</div>
+          </div>
+          <div class="col">
+            <label for="usrRrno">주민번호</label>
+            <input type="text" class="form-control form-control-lg" id="usrRrno" x-ref="usrRrno"
+              x-init="Inputmask({mask: '999999-9999999', keepStatic: true, placeholder: '0', autoUnmask: true}).mask($el);"
+              @keyup="(evt)=>{
 
                   if($el.readOnly) return;
 
@@ -352,31 +363,26 @@
                     $el.classList.remove('is-valid');
                     pseInfo.validated = false;
                   }
-                 }"
-                 required>
-          <div class="invalid-feedback">주민번호를 정확히 입력해주세요</div>
+                 }" required>
+            <div class="invalid-feedback">주민번호를 정확히 입력해주세요</div>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col text-end mt-3">
-          <template x-if="step===1 && pseInfo.validated" >
-            <button class="btn btn-lg btn-primary focusable"
-              id="nextBtn1"
-              x-transition.opacity.200ms
-              x-init="$nextTick(()=>{
-                console.log('nextBtn1 init $nextTick')
+        <div class="row">
+          <div class="col text-end mt-3">
+            <template x-if="step===1 && pseInfo.validated">
+              <button class="btn btn-lg btn-primary focusable" id="nextBtn1" x-transition.opacity.200ms x-init="$nextTick(()=>{
+                  console.log('nextBtn1 init $nextTick')
 
-                driverObj.highlight({
-                  element: '#nextBtn1',
-                  popover:{
-                    title: '본인 확인이 완료되었습니다.',
-                    description: '다음 단계로 이동합니다.',
-                    align: 'start',
-                    side: 'top',
-                  },
-                })
-               })"
-              @click="()=>{
+                  driverObj.highlight({
+                    element: '#nextBtn1',
+                    popover:{
+                      title: '본인 확인이 완료되었습니다.',
+                      description: '다음 단계로 이동합니다.',
+                      align: 'start',
+                      side: 'top',
+                    },
+                  })
+                })" @click="()=>{
 
                  driverObj.destroy()
 
@@ -387,39 +393,33 @@
                   setStep(3)
                   doQuestion()
                 }
-              }"
-            > 다음 <em class="bi bi-arrow-right"></em></button>
-          </template>
+              }"> 다음 <em class="bi bi-arrow-right"></em></button>
+            </template>
+          </div>
         </div>
       </div>
+
     </div>
 
-  </div>
+  </template>
+  <!--// 본인확인 -->
 
-</template>
-<!--// 본인확인 -->
-
-<!-- 유의사항 확인 -->
-<template x-teleport="#messages">
-  <div class="container border rounded-4 shadow p-5 position-relative"
-       x-show="step===2"
-       x-transition.opacity.200ms
-  >
-    <h5>다음 안내 사항을 숙지해 주세요</h5>
-    <div class="row" style="max-height: 50vh">
-      <div class="col">
-        <div class="bs-stepper vertical" id="privacyStepper">
-          <div class="bs-stepper-header" role="tablist"></div>
-          <div class="bs-stepper-content" style="max-height: 50vh;"></div>
+  <!-- 유의사항 확인 -->
+  <template x-teleport="#messages">
+    <div class="container border rounded-4 shadow p-5 position-relative" x-show="step===2" x-transition.opacity.200ms>
+      <h5>다음 안내 사항을 숙지해 주세요</h5>
+      <div class="row" style="max-height: 50vh">
+        <div class="col">
+          <div class="bs-stepper vertical" id="privacyStepper">
+            <div class="bs-stepper-header" role="tablist"></div>
+            <div class="bs-stepper-content" style="max-height: 50vh;"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="row">
-        <div class="col text-end mt-3">
-          <template x-if="step===2 && pseInfo.confirms.findIndex(c => !c)===-1" >
-            <button class="btn btn-lg btn-primary bi bi-arrow-right-square focusable"
-                    id="nextBtn2"
-                    x-init="$nextTick(()=>{
+        <div class="row">
+          <div class="col text-end mt-3">
+            <template x-if="step===2 && pseInfo.confirms.findIndex(c => !c)===-1">
+              <button class="btn btn-lg btn-primary bi bi-arrow-right-square focusable" id="nextBtn2" x-init="$nextTick(()=>{
                       console.log('nextBtn2 $nextTick')
 
                       driverObj.highlight({
@@ -431,150 +431,143 @@
                           side: 'top',
                         },
                       })
-                     })"
-                    @click="()=>{
+                     })" @click="()=>{
                       driverObj.destroy()
 
                       setStep(3)
                       doQuestion()
-                    }"
-            > 다음</button>
-          </template>
+                    }"> 다음</button>
+            </template>
+          </div>
         </div>
       </div>
+
     </div>
 
-  </div>
+  </template>
+  <!--// 유의사항 -->
 
-</template>
-<!--// 유의사항 -->
-
-<!-- 보험선택 -->
-<template x-teleport="#messages">
-  <div class="container border rounded-4 shadow p-2"
-       x-show="pseInfo?.validated && step===3"
-       x-transition.opacity.200ms
-  >
-    <div class="bs-stepper vertical" id="prdSelectStepper">
-      <!-- 보험선택 좌측 stepper -->
-      <div class="bs-stepper-header" role="tablist">
-        <template x-for="(question, index) in makeIsrStepper()">
+  <!-- 보험선택 -->
+  <template x-teleport="#messages">
+    <div class="container border rounded-4 shadow p-2" x-show="pseInfo?.validated && step===3"
+      x-transition.opacity.200ms>
+      <div class="bs-stepper vertical" id="prdSelectStepper">
+        <!-- 보험선택 좌측 stepper -->
+        <div class="bs-stepper-header" role="tablist">
+          <template x-for="(question, index) in makeIsrStepper()">
             <div :class="`step${(bhdSlcChnYn && !checkIL002(question.data.isrPrdCd))?' opacity-50':''}`"
-                 :data-target="`#${question.data.isrPrdCd}-part`"
-                 x-data="{prdIndex: index}"
-            >
+              :data-target="`#${question.data.isrPrdCd}-part`" x-data="{prdIndex: index}">
               <button class="step-trigger" role="tab" style="flex-wrap: nowrap;padding:14px"
-                      :disabled="(stepper && prdIndex>stepper?._currentIndex)
-                        || question.data.isrrClCd==='1' && !spsInfo?.usrFnm
-                        && (!bhdSlcChnYn && question.data.isrPrdCd!==spsPrdMin
-                            || bhdSlcChnYn && !checkIL002(question.data.isrPrdCd))"
-                      :id="`${question.data.isrPrdCd}-trigger`"
-                      :aria-controls="`${question.data.isrPrdCd}-part`"
-              >
+                :disabled="isrPrdDisabled(question.data, index)" :id="`${question.data.isrPrdCd}-trigger`"
+                :aria-controls="`${question.data.isrPrdCd}-part`">
                 <span
-                    :class="`bs-stepper-circle ${(step===3
-                      && selected[question.data.isrPrdCd]
-                      && (selected[question.data.isrPrdCd].isrrClCd
-                          || (!selected[question.data.isrPrdCd].isrrClCd
-                              && selected[question.data.isrPrdCd][0].isrrClCd === '3'
-                              && selected[question.data.isrPrdCd].length===chldInfo?.length))?'bg-success bi bi-check':'')}`"
-                    x-text="(step===3 && selected[question.data.isrPrdCd])?'':(index+1)">
+                  :class="`bs-stepper-circle ${(step===3 && isrPrdSelectCompleted(question.data))?'bg-success bi bi-check':''}`"
+                  x-text="(step===3 && isrPrdSelectCompleted(question.data))?'':(index+1)">
                 </span>
                 <span class="bs-stepper-label" x-text="question.short_title"></span>
               </button>
             </div>
-        </template>
-      </div>
-      <!--// 보험선택 좌측 stepper -->
-      <!-- 보험선택 우측      -->
-      <div class="bs-stepper-content border-start  w-100">
-        <template x-for="(question, index) in makeIsrStepper()">
-          <div :id="`${question.data.isrPrdCd}-part`" :aria-labelledby="`${question.data.isrPrdCd}-trigger`"
-               class="content fade p-3" role="tabpanel">
+          </template>
+        </div>
+        <!--// 보험선택 좌측 stepper -->
+        <!-- 보험선택 우측      -->
+        <div class="bs-stepper-content border-start  w-100">
+          <template x-for="(question, index) in makeIsrStepper()">
+            <div :id="`${question.data.isrPrdCd}-part`" :aria-labelledby="`${question.data.isrPrdCd}-trigger`"
+              class="content fade p-3" role="tabpanel">
 
-            <template x-if="question.data.isrrClCd!=='0'">
-              <div class="row p-2 g-3 my-3">
-                <div class="col-10">
-                <table class="table table-bordered table-striped table-hover table-sm rounded-3 overflow-hidden">
-                  <caption class="caption-top" x-text="(question.data.isrrClCd==='1'?'배우자':'자녀') + ' 정보'"></caption>
-                  <thead class="table-secondary text-center">
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">성명</th>
-                      <th scope="col">주민번호</th>
-                      <th scope="col">휴대폰 번호</th>
-                      <th scope="col" x-show="question.data.isrrClCd==='3'">증빙파일</th>
-                      <th scope="col" x-show="question.data.isrrClCd==='1'"></th>
-                    </tr>
-                  </thead>
-                  <tbody class="text-center" style="font-family: monospace, monospace">
-
-                    <template x-if="question.data.isrrClCd==='1'">
-                      <tr class="align-middle" x-show="spsInfo?.usrFnm">
-                        <th scope="row"></th>
-                        <td x-text="spsInfo?.usrFnm"></td>
-                        <td x-html="printMask({valueObj: 'spsInfo?.rrno'})"></td>
-                        <td x-html="printMask({valueObj: 'spsInfo?.cellPhoneNo', type: 'mobile'})"></td>
-                        <td>
-                          <button :class="`btn btn-outline-danger bi bi-x${bhdSlcChnYn && spsOtherIsrYn?' d-none':''}`" @click.throttle="deleteSps()"> 삭제</button>
-                          <button class="btn btn-outline-info bi bi-pencil" @click.throttle="confirmSpsIsr(1)"> 수정</button>
-                        </td>
-                      </tr>
-                    </template>
-
-                    <template x-if="question.data.isrrClCd==='3' && chldInfo?.length">
-                      <template x-for="(chld, index) in chldInfo">
-
-                        <tr class="align-middle">
-                          <th scope="row" x-text="index+1"></th>
-                          <td x-text="chld?.usrFnm"></td>
-                          <td x-html="printMask({valueObj: 'chld?.rrno'})"></td>
-                          <td x-html="printMask({valueObj: 'chld?.cellPhoneNo', type: 'mobile'})"></td>
-                          <td style="max-width: 15%"
-                              x-html="chld?.files?.[0]?.name?`<small class='d-inline-block text-truncate' style='max-width:100px'>${chld.files[0].name}</small>`:printFileviewer({encdFileNo:chld?.updFleNo, title: '증빙파일 확인'})"></td>
+              <template x-if="question.data.isrrClCd!=='0'">
+                <div class="row p-2 g-3 mt-3">
+                  <div class="col-10">
+                    <table class="table table-bordered table-striped table-hover table-sm rounded-3 overflow-hidden">
+                      <caption class="caption-top" x-text="(question.data.isrrClCd==='1'?'배우자':'자녀') + ' 정보'"></caption>
+                      <thead class="table-secondary text-center">
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">성명</th>
+                          <th scope="col">주민번호</th>
+                          <th scope="col">생년월일</th>
+                          <th scope="col">성별</th>
+                          <th scope="col">휴대폰 번호</th>
+                          <th scope="col" x-show="question.data.isrrClCd==='3'">증빙파일</th>
+                          <th scope="col" x-show="question.data.isrrClCd==='1'"></th>
                         </tr>
-                      </template>
-                    </template>
+                      </thead>
+                      <tbody class="text-center" style="font-family: monospace, monospace">
 
-                  </tbody>
-                  <template x-if="question.data.isrrClCd==='3'">
-                    <tfoot>
-                      <tr>
-                        <td colspan="5" class="me-4 text-end">
-                          <button class="btn btn-info bi bi-pencil"
-                            x-show="chldInfo && chldInfo.length"
-                            @click="confirmChldIsr(1)"> 자녀정보 수정</button>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </template>
-                </table>
+                        <template x-if="question.data.isrrClCd==='1'">
+                          <tr class="align-middle" x-show="spsInfo?.usrFnm">
+                            <th scope="row"></th>
+                            <td x-text="spsInfo?.usrFnm"></td>
+                            <td x-html="printMask({valueObj: 'spsInfo?.rrno'})"></td>
+                            <td x-text="spsInfo?.birthday"></td>
+                            <td x-text="spsInfo?.sxClCd==='1'?'남':'여'"></td>
+                            <td x-html="printMask({valueObj: 'spsInfo?.cellPhoneNo', type: 'mobile'})"></td>
+                            <td>
+                              <button
+                                :class="`btn btn-outline-danger bi bi-x${bhdSlcChnYn && spsOtherIsrYn?' d-none':''}`"
+                                @click.throttle="deleteSps()"> 삭제</button>
+                              <button class="btn btn-outline-info bi bi-pencil" @click.throttle="confirmSpsIsr(1)">
+                                수정</button>
+                            </td>
+                          </tr>
+                        </template>
+
+                        <template x-if="question.data.isrrClCd==='3' && chldInfo?.length">
+                          <template x-for="(chld, index) in chldInfo">
+
+                            <tr class="align-middle">
+                              <th scope="row" x-text="index+1"></th>
+                              <td x-text="chld?.usrFnm"></td>
+                              <td x-html="printMask({valueObj: 'chld?.rrno'})"></td>
+                              <td x-text="chld?.birthday"></td>
+                              <td x-text="chld?.sxClCd==='1'?'남':'여'"></td>
+                              <td x-html="printMask({valueObj: 'chld?.cellPhoneNo', type: 'mobile'})"></td>
+                              <td style="max-width: 15%"
+                                x-html="chld?.files?.[0]?.name?`<small class='d-inline-block text-truncate' style='max-width:100px'>${chld.files[0].name}</small>`:printFileviewer({encdFileNo:chld?.updFleNo, title: '증빙파일 확인'})">
+                              </td>
+                            </tr>
+                          </template>
+                        </template>
+
+                      </tbody>
+                    </table>
+
+                  </div>
                 </div>
+
+              </template>
+
+              <template x-if="question.data.isrrClCd==='3'">
+                <div class="row mt-0 pt-0">
+                  <div class="col-10 d-flex justify-content-end">
+                    <button class="btn btn-info bi bi-pencil" x-show="chldInfo && chldInfo.length"
+                      @click="confirmChldIsr(1)"> 자녀정보 수정</button>
+                  </div>
+                </div>
+              </template>
+
+
+              <div class="fs-5" x-html="question.message"></div>
+              <div class="row p-3">
+                <div class="col-8 divForOption"></div>
               </div>
-
-            </template>
-            <div class="fs-5" x-html="question.message"></div>
-            <div class="row p-3">
-              <div class="col-8 divForOption"></div>
+              <div class="row p-3 divForOptionDesc"
+                x-show="question.data.isrPrdCd === 'IL0002' && selected[question.data.isrPrdCd]?.isrDtlCd === 'IM0212'"
+                x-html="`<span><b><em class='bi bi-check-square-fill text-success'></em> 개인 의료비 보장 가입등에 따른 미가입 대상자 확인</b>
+                  ${!selected[question.data.isrPrdCd]?.selectedTime?'': ': ' + new Date(selected[question.data.isrPrdCd]?.selectedTime)?.toLocaleString()}</span>`">
+              </div>
+              <div class="row border rounded bg-warning-subtle divForNotice p-3 mt-30"></div>
             </div>
-            <div class="row p-3 divForOptionDesc"
-                 x-show="question.data.isrPrdCd === 'IL0002' && selected[question.data.isrPrdCd]?.isrDtlCd === 'IM0212'"
-                 x-html="`<span><b><em class='bi bi-check-square-fill text-success'></em> 개인 의료비 보장 가입등에 따른 미가입 대상자 확인</b>
-                  ${!selected[question.data.isrPrdCd]?.selectedTime?'': ': ' + new Date(selected[question.data.isrPrdCd]?.selectedTime)?.toLocaleString()}</span>`"
-            ></div>
-            <div class="row border rounded bg-warning-subtle divForNotice p-3 mt-30"></div>
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
-    </div>
 
-    <div class="row mt-4">
-      <div class="col text-end mt-3">
-        <template x-if="(realStep>=3 && step===3 && !checkNotSelected().length)" >
-          <button class="btn btn-lg btn-primary bi bi-arrow-right-square"
-                  id="nextBtn3" x-transition.opacity.200ms
-                  x-show="(realStep>=3 && step===3 && !checkNotSelected().length)"
-                  x-init="$nextTick(()=>{
+      <div class="row mt-4">
+        <div class="col text-end mt-3">
+          <template x-if="(realStep>=3 && step===3 && !isShownModal && !checkNotSelected().length)">
+            <button class="btn btn-lg btn-primary bi bi-arrow-right-square" id="nextBtn3" x-transition.opacity.200ms
+              x-init="$nextTick(()=>{
 
   console.debug('nextBtn3 $nextTick')
 
@@ -592,26 +585,23 @@
 
                     }, 700)
 
-                   })"
-                  @click="()=>{
+                   })" @click="()=>{
                     driverObj.destroy()
                     setStep(4)
-                  }"
-          > 보험선택완료</button>
-        </template>
+                  }"> 보험선택완료</button>
+          </template>
+        </div>
       </div>
+
     </div>
 
-  </div>
+  </template>
+  <!--// 보험선택 -->
 
-</template>
-<!--// 보험선택 -->
-
-<!-- 선택 결과 -->
-<template x-teleport="#messages">
-  <template x-if="pseInfo?.validated && step===4 && !checkNotSelected().length">
-  <div class="container border rounded-4 shadow p-5 position-relative"
-       x-data="{
+  <!-- 선택 결과 -->
+  <template x-teleport="#messages">
+    <template x-if="pseInfo?.validated && step===4 && !checkNotSelected().length">
+      <div class="container border rounded-4 shadow p-5 position-relative" x-data="{
         driverStep: window.driver.js.driver({
             showProgress: true,
             steps:[
@@ -648,240 +638,243 @@
             doneBtnText: '확인',
 
           })
-       }"
-       x-init="$nextTick(()=>{
+       }" x-init="$nextTick(()=>{
          setTimeout(()=>driverStep.drive(), 300)
-       })"
-  >
+       })">
 
-    <div class="row">
-      <h4 x-text="dcnYn?'🎁 보험선택 내역입니다.':'🎁 보험선택을 확정 하시겠습니까?'"></h4>
-      <div class="col">
-        <template x-if="step===4">
-          <div class="row p-0 ">
-            <div class="row">
+        <div class="row">
+          <h4 x-text="dcnYn?'🎁 보험선택 내역입니다.':'🎁 보험선택을 확정 하시겠습니까?'"></h4>
+          <div class="col">
+            <template x-if="step===4">
+              <div class="row p-0 ">
+                <div class="row">
 
-              <table class='table table-bordered table-striped table-hover table-sm shadow rounded-4 overflow-hidden' id="bhdResultTable">
-                <caption class="caption-top w-100 text-end pe-1 fw-bold" x-text="`${pseInfo.usrFnm} (${formatSsn(pseInfo.rrno)})`"></caption>
-                <thead class="table-primary">
-                <tr>
-                  <th scope="col"></th>
-                  <th scope="col">필수여부</th>
-                  <th scope="col">보험상품</th>
-                  <th scope="col">보장내용</th>
-                  <th scope="col">대상</th>
-                  <th scope="col">대상자 성명</th>
-                  <th scope="col">대상자 주민번호</th>
-                  <th scope="col">성별</th>
-                  <th scope="col"><small>예상보험료</small></th>
-                </tr>
-                </thead>
-                <tbody>
-                <template x-for="(question, index) in questions.filter(q=>q.data.isrrClCd!=='3')">
-                  <tr class="align-middle">
-                    <th scope="row" class="text-end" x-text="index+1"></th>
-                    <td x-text="question.data.essYn?'필수':'선택'"
-                        :class="`text-center ${question.data.essYn?'text-success':'text-primary'}`"></td>
-                    <td x-text="question.data.isrPrdNm"
-                        :class="selected[question.data.isrPrdCd]?.isrDtlNm?'fw-bold':'text-muted fst-italic'"></td>
-                    <td x-text="selected[question.data.isrPrdCd]?.isrDtlNm||'미가입'"
-                        :class="selected[question.data.isrPrdCd]?.isrDtlNm?'fw-bold':'text-muted fst-italic'"></td>
-                    <td x-text="question.data.isrrClCd==='0'?'본인':question.data.isrrClCd==='1'?'배우자':question.data.isrrClCd==='3'?'자녀':question.data.isrrClCd"></td>
-                    <td x-text="selected[question.data.isrPrdCd]?.tgrFnm"></td>
-                    <td>
-                      <div x-html="printMask({valueObj: 'selected[question.data.isrPrdCd]?.tgrRrno'})"></div>
-                        <template x-if="question.data.isrrClCd==='1' && selected[question.data.isrPrdCd]?.agrInfo">
-                          <div class="row">
-                            <div class="col" x-show="spsInfo?.agrInfo?.agrStsCdNm"
-                                 x-html="`<small>개인정보제공동의: ${spsInfo?.agrInfo?.agrStsCdNm }</small>`"
-                              @dblclick="window.open(`/wus/agr/r/${spsInfo?.agrInfo?.token}.jdo`)"></div>
-                          </div>
-                        </template>
-                    </td>
-                    <td x-text="!(selected[question.data.isrPrdCd]?.tgrSxClcd)?'-':selected[question.data.isrPrdCd].tgrSxClcd === '1' ? '남' : '여'"
-                        class="text-center"></td>
-                    <td x-text="selected[question.data.isrPrdCd]?.isrSbcAmt && __floorAmt(selected[question.data.isrPrdCd].isrSbcAmt).toLocaleString()"
-                        class="text-end"></td>
-                  </tr>
-                  </template>
-                  <template x-for="(question, index) in questions.filter(q=>q.data.isrrClCd==='3')">
-                    <template x-for="(sel, i) in selected[question.data.isrPrdCd]">
-                      <tr class="align-middle">
-                        <th scope="row" class="text-end" x-text="$el.parentElement.rowIndex"></th>
-                        <td x-text="question.data.essYn?'필수':'선택'"
-                            :class="`text-center ${question.data.essYn?'text-success':'text-primary'}`"></td>
-                        <td x-text="question.data.isrPrdNm"
-                            :class="sel?.isrDtlNm?'fw-bold':'text-muted fst-italic'"></td>
-                        <td x-text="sel?.isrDtlNm||'미가입'"
-                            :class="sel?.isrDtlNm?'fw-bold':'text-muted fst-italic'"></td>
-                        <td>자녀</td>
-                        <td x-text="sel?.tgrFnm"></td>
-                        <td>
-                          <div x-html="printMask({valueObj: 'sel?.tgrRrno'})"></div>
-                          <template x-if="sel?.agrInfo">
-                            <div @dblclick="window.open(`/wus/agr/r/${sel.agrInfo.token}.jdo`)">
-                              <small x-text="`개인정보제공동의:${sel?.agrInfo?.agrStsCdNm }`"></small>
-                            </div>
-                          </template>
-                        </td>
-                        <td x-text="!(sel?.tgrSxClcd)?'-':sel.tgrSxClcd === '1' ? '남' : '여'" class="text-center"></td>
-                        <td x-text="sel?.isrSbcAmt && __floorAmt(sel.isrSbcAmt).toLocaleString()" class="text-end"></td>
+                  <table
+                    class='table table-bordered table-striped table-hover table-sm shadow rounded-4 overflow-hidden'
+                    id="bhdResultTable" x-data="{index: 0}">
+                    <caption class="caption-top w-100 text-end pe-1 fw-bold"
+                      x-text="`${pseInfo.usrFnm} (${formatSsn(pseInfo.rrno)})`"></caption>
+                    <thead class="table-primary">
+                      <tr>
+                        <th scope="col"></th>
+                        <th scope="col">필수여부</th>
+                        <th scope="col">보험상품</th>
+                        <th scope="col">보장내용</th>
+                        <th scope="col">대상</th>
+                        <th scope="col">대상자 성명</th>
+                        <th scope="col">대상자 주민번호</th>
+                        <th scope="col">성별</th>
+                        <th scope="col"><small>예상보험료</small></th>
                       </tr>
-                    </template>
-                  </template>
-                </tbody>
-                <tfoot>
-                <tr>
-                  <td colspan="6"></td>
-                  <td class="text-end fw-bold p-3" colspan="3" id="summaryTd">
-                    <span class="me-2">예상보험료 합계</span>
-                    <span x-text="Object.values(selected).flat().map(d => __floorAmt(d.isrSbcAmt)).reduce((accumulator, d) => (accumulator + d), 0).toLocaleString()"></span>
-                    <small> (예상
-                      <em class="bi bi-question-circle-fill text-info"
-                          data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"  data-bs-html="true"
-                          x-init="()=>new bootstrap.Tooltip($el)"
-                          :title="`최종보험료는 개인별 보험선택 결과(인원, 평균연령)에 근거하여 계약 체결 후 확정되며,
+                    </thead>
+                    <tbody>
+                      <template x-for="(question) in questions
+                                                      .filter(q=>q.data.isrrClCd==='0'
+                                                          || (spsInfo?.validated && q.data.isrrClCd==='1'))">
+                        <tr class="align-middle" x-data="{sel: selected[question.data.isrPrdCd]}">
+                          <th scope="row" class="text-end" x-text="index++"></th>
+                          <td x-text="question.data.essYn?'필수':'선택'"
+                            :class="`text-center ${question.data.essYn?'text-success':'text-primary'}`"></td>
+                          <td x-text="question.data.isrPrdNm" :class="sel?.isrDtlNm?'fw-bold':'text-muted fst-italic'">
+                          </td>
+                          <td x-text="sel?.isrDtlNm||'미가입'" :class="sel?.isrDtlNm?'fw-bold':'text-muted fst-italic'">
+                          </td>
+                          <td
+                            x-text="question.data.isrrClCd==='0'?'본인':question.data.isrrClCd==='1'?'배우자':question.data.isrrClCd==='3'?'자녀':question.data.isrrClCd">
+                          </td>
+                          <td x-text="sel?.tgrFnm" :class="{'fst-italic':!sel?.useYn}"></td>
+                          <td>
+                            <div x-html="printMask({valueObj: 'sel?.tgrRrno'})"></div>
+                            <template x-if="question.data.isrrClCd==='1' && sel?.agrInfo">
+                              <div class="row">
+                                <div class="col" x-show="spsInfo?.agrInfo?.agrStsCdNm"
+                                  x-html="`<small>개인정보제공동의: ${spsInfo?.agrInfo?.agrStsCdNm }</small>`"
+                                  @dblclick="window.open(`/wus/agr/r/${spsInfo?.agrInfo?.token}.jdo`)"></div>
+                              </div>
+                            </template>
+                          </td>
+                          <td
+                            x-text="!(selected[question.data.isrPrdCd]?.tgrSxClcd)?'-':selected[question.data.isrPrdCd].tgrSxClcd === '1' ? '남' : '여'"
+                            class="text-center"></td>
+                          <td
+                            x-text="selected[question.data.isrPrdCd]?.isrSbcAmt && __floorAmt(selected[question.data.isrPrdCd].isrSbcAmt).toLocaleString()"
+                            class="text-end"></td>
+                        </tr>
+                      </template>
+                      <template
+                        x-for="(question) in questions.filter(q=>q.data.isrrClCd==='3' && chldInfo?.length && chldInfo.find(c=>c.validated))">
+                        <template x-for="(child, i) in chldInfo">
+                          <tr class="align-middle" x-data="{sel: selected[question.data.isrPrdCd][child.tempId]}">
+                            <th scope="row" class="text-end" x-text="index++"></th>
+                            <td x-text="question.data.essYn?'필수':'선택'"
+                              :class="`text-center ${question.data.essYn?'text-success':'text-primary'}`"></td>
+                            <td x-text="question.data.isrPrdNm" :class="sel?.useYn?'fw-bold':'text-muted fst-italic'">
+                            </td>
+                            <td x-text="sel?.isrDtlNm||'미가입'" :class="sel?.useYn?'fw-bold':'text-muted fst-italic'">
+                            </td>
+                            <td>자녀</td>
+                            <td x-text="sel?.tgrFnm" :class="{'fst-italic':!sel?.useYn}"></td>
+                            <td>
+                              <div x-html="printMask({valueObj: 'sel?.tgrRrno'})"></div>
+                              <template x-if="sel?.agrInfo">
+                                <div @dblclick="window.open(`/wus/agr/r/${sel.agrInfo.token}.jdo`)">
+                                  <small x-text="`개인정보제공동의:${sel?.agrInfo?.agrStsCdNm }`"></small>
+                                </div>
+                              </template>
+                            </td>
+                            <td x-text="!(sel?.tgrSxClcd)?'-':sel.tgrSxClcd === '1' ? '남' : '여'" class="text-center">
+                            </td>
+                            <td x-text="sel?.isrSbcAmt && __floorAmt(sel.isrSbcAmt).toLocaleString()" class="text-end">
+                            </td>
+                          </tr>
+                        </template>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colspan="6"></td>
+                        <td class="text-end fw-bold p-3" colspan="3" id="summaryTd">
+                          <span class="me-2">예상보험료 합계</span>
+                          <span
+                            x-text="Object.values(selected).flat().map(d => __floorAmt(d.isrSbcAmt)).reduce((accumulator, d) => (accumulator + d), 0).toLocaleString()"></span>
+                          <small> (예상
+                            <em class="bi bi-question-circle-fill text-info" data-bs-toggle="tooltip"
+                              data-bs-placement="top" data-bs-custom-class="custom-tooltip" data-bs-html="true"
+                              x-init="()=>new bootstrap.Tooltip($el)" :title="`최종보험료는 개인별 보험선택 결과(인원, 평균연령)에 근거하여 계약 체결 후 확정되며,
   예상보험료와 다르게 책정될 수 있습니다.`"></em>)
-                    </small>
-                  </td>
-                </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="row rounded-3 border bg-warning-subtle mt-3 p-3" id="noticeDiv">
-              <ul>
-                <li>최종보험료는 개인별 보험선택 결과(인원, 평균연령)에 근거하여 계약 체결 후 확정되며, 예상보험료와 다르게 책정될 수 있습니다.</li>
-                <li>최종보험료가 개인별 배정 복지점수를 초과할 경우, 환수가 발생할 수 있음을 유의하여 주시기 바랍니다.</li>
-              </ul>
-            </div>
+                          </small>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div class="row rounded-3 border bg-warning-subtle mt-3 p-3" id="noticeDiv">
+                  <ul>
+                    <li>최종보험료는 개인별 보험선택 결과(인원, 평균연령)에 근거하여 계약 체결 후 확정되며, 예상보험료와 다르게 책정될 수 있습니다.</li>
+                    <li>최종보험료가 개인별 배정 복지점수를 초과할 경우, 환수가 발생할 수 있음을 유의하여 주시기 바랍니다.</li>
+                  </ul>
+                </div>
+              </div>
+            </template>
           </div>
-        </template>
-      </div>
-      <div class="row">
-        <div class="col text-end mt-3">
-          <button class="btn btn-lg btn-success bi bi-check-lg"
-                  :disabled="realStep>4"
-                  id="nextBtn4"
-                  @click.once="()=>{
+          <div class="row">
+            <div class="col text-end mt-3">
+              <button class="btn btn-lg btn-success bi bi-check-lg" :disabled="realStep>4" id="nextBtn4" @click.once="()=>{
                     driverStep.destroy()
                     done()
-                  }"
-          > 확정</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-  </template>
-</template>
-<!--// 선택결과 -->
-
-<!-- 선택 결과 -->
-<template x-teleport="#messages">
-  <div class="container border rounded-4 shadow p-5 position-relative"
-       x-show="step===5"
-       x-transition.opacity.1000ms
-       style="max-width: 900px"
-  >
-
-    <div class="row">
-      <h4 x-text="`${bseYr}년도 ${pseInfo.usrFnm}님의 보험선택이 확정되었습니다.`"></h4>
-      <div class="col">
-        <div class="row">
-          <div class="col-4 d-flex">
-            <img src="https://www.gwp.or.kr/js/lib/bot/img/mascot/thanks.png" alt="믿음이 감사합니다.">
+                  }"> 확정</button>
+            </div>
           </div>
-          <div class="col-8">
-            <div class="bg-warning-subtle text-muted rounded my-2 p-2">
-              <ol>
-              <template x-if="bhdSlcChnYn">
-                <li class="my-1" x-html="`
+        </div>
+
+      </div>
+    </template>
+  </template>
+  <!--// 선택결과 -->
+
+  <!-- 선택 결과 -->
+  <template x-teleport="#messages">
+    <div class="container border rounded-4 shadow p-5 position-relative" x-show="step===5" x-transition.opacity.1000ms
+      style="max-width: 900px">
+
+      <div class="row">
+        <h4 x-text="`${bseYr}년도 ${pseInfo.usrFnm}님의 보험선택이 확정되었습니다.`"></h4>
+        <div class="col">
+          <div class="row">
+            <div class="col-4 d-flex">
+              <img src="https://www.gwp.or.kr/js/lib/bot/img/mascot/thanks.png" alt="믿음이 감사합니다.">
+            </div>
+            <div class="col-8">
+              <div class="bg-warning-subtle text-muted rounded my-2 p-2">
+                <ol>
+                  <template x-if="bhdSlcChnYn">
+                    <li class="my-1" x-html="`
                   <span class='text-primary fw-bold'>
                     의료비 보장 보험 조정 기간(${moment(wlfInst.bhdSlcChnBgnDt, 'YYYYMMDD').format('YYYY-MM-DD(ddd)')}~${moment(wlfInst.bhdSlcChnNdDt, 'YYYYMMDD').format('YYYY-MM-DD(ddd)')})
                   </span> 내 변경이 가능하며, 종료시 변경 불가합니다.`">
-                </li>
-              </template>
-              <template x-if="!bhdSlcChnYn">
-                <li class="my-1" x-html="`선택 상품은
+                    </li>
+                  </template>
+                  <template x-if="!bhdSlcChnYn">
+                    <li class="my-1" x-html="`선택 상품은
                   <span class='text-primary fw-bold'>
                     보험선택 기간(${moment(wlfInst.bhdSlcBgnDt, 'YYYYMMDD').format('YYYY-MM-DD(ddd)')}~${moment(wlfInst.bhdSlcNdDt, 'YYYYMMDD').format('YYYY-MM-DD(ddd)')})
                   </span> 내 변경이 가능하며, 종료시 변경 불가합니다.`">
-                </li>
-              </template>
-                <li class="my-1">안내한 보험료는 예상 보험료이며, 평균 연령 및 선택인원에 따라 최종보험료가 산출될 예정입니다.</li>
-                <li class="my-1">배우자 및 15세이상 자녀 가입 시 <b>기간내 개인정보 동의 필수</b></li>
-                <li class="my-1">확정 보험료가 복지포인트를 초과할 시 환수 발생할 수 있습니다.</li>
-              </ol>
+                    </li>
+                  </template>
+                  <li class="my-1">안내한 보험료는 예상 보험료이며, 평균 연령 및 선택인원에 따라 최종보험료가 산출될 예정입니다.</li>
+                  <li class="my-1">배우자 및 15세이상 자녀 가입 시 <b>기간내 개인정보 동의 필수</b></li>
+                  <li class="my-1">확정 보험료가 복지포인트를 초과할 시 환수 발생할 수 있습니다.</li>
+                </ol>
+              </div>
+              <span class="lead fw-bold">감사합니다.</span>
             </div>
-            <span class="lead fw-bold">감사합니다.</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col text-end mt-3">
+            <button class="btn btn-lg btn-warning" id="nextBtn5" x-transition.opacity.500ms @click="window.close()">
+              닫기</button>
           </div>
         </div>
       </div>
-      <div class="row">
-        <div class="col text-end mt-3">
-          <button class="btn btn-lg btn-warning"
-                  id="nextBtn5" x-transition.opacity.500ms
-                  @click="window.close()"
-          > 닫기</button>
-        </div>
-      </div>
+
     </div>
 
+  </template>
+  <!--// 선택결과 -->
+
+  <!-- offcanvas 유의사항-->
+  <div class="offcanvas offcanvas-start w-50" tabindex="-1" id="offcanvasInfo" data-interval="2000"
+    aria-labelledby="offcanvasLabel">
+    <div class="offcanvas-header bg-primary-subtle">
+      <h5 class="offcanvas-title" id="offcanvasLabel"></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="확인"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div id="offcanvasContent"></div>
+    </div>
+    <div class="text-end me-4 mb-4" id="offcanvas-close-div">
+      <button type="button" data-bs-dismiss="offcanvas" class="btn btn-lg btn-primary px-5"
+        @click="doNoticeAgree($el.dataset.isrPrdCd)">확인</button>
+    </div>
   </div>
+  <!-- offcanvas-->
 
-</template>
-<!--// 선택결과 -->
 
-<!-- offcanvas 유의사항-->
-<div class="offcanvas offcanvas-start w-50" tabindex="-1" id="offcanvasInfo"
-     data-interval="2000" aria-labelledby="offcanvasLabel">
-  <div class="offcanvas-header bg-primary-subtle">
-    <h5 class="offcanvas-title" id="offcanvasLabel"></h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="확인"></button>
+  <!-- offcanvas 개인정보 제공동의-->
+  <div class="offcanvas offcanvas-end w-50" id="offcanvasPrivacy" tabindex="-1" aria-labelledby="offcanvasPrivacyLabel"
+    data-bs-animation="1000">
+    <div class="offcanvas-header bg-primary-subtle">
+      <h5 class="offcanvas-title" id="offcanvasPrivacyLabel"></h5>
+    </div>
+    <div class="offcanvas-body">
+      <div id="offcanvasPrivacyContent"></div>
+    </div>
   </div>
-  <div class="offcanvas-body">
-    <div id="offcanvasContent"></div>
-  </div>
-  <div class="text-end me-4 mb-4" id="offcanvas-close-div">
-    <button type="button" data-bs-dismiss="offcanvas" class="btn btn-lg btn-primary px-5" @click="doNoticeAgree($el.dataset.isrPrdCd)">확인</button>
-  </div>
-</div>
-<!-- offcanvas-->
+  <!-- offcanvas-->
 
+  <script type="text/javascript" src="https://www.gwp.or.kr/js/lib/bootstrap/v5.3.3/bootstrap.bundle.min.js"></script>
 
-<!-- offcanvas 개인정보 제공동의-->
-<div class="offcanvas offcanvas-end w-50" id="offcanvasPrivacy"
-     tabindex="-1"  aria-labelledby="offcanvasPrivacyLabel"
-     data-bs-animation="1000">
-  <div class="offcanvas-header bg-primary-subtle">
-    <h5 class="offcanvas-title" id="offcanvasPrivacyLabel"></h5>
-  </div>
-  <div class="offcanvas-body">
-    <div id="offcanvasPrivacyContent"></div>
-  </div>
-</div>
-<!-- offcanvas-->
+  <script type="text/javascript" src="https://www.gwp.or.kr/js/lib/bootstrap/stepper/v1.7/bs-stepper.min.js"></script>
 
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/bootstrap/v5.3.3/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/sweetalert2@11.22.5/dist/sweetalert2.all.min.js"></script>
 
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/bootstrap/stepper/v1.7/bs-stepper.min.js"></script>
-
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sweetalert2@11.22.5/dist/sweetalert2.all.min.js"></script>
-
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/driverjs/v136/driver.js.iife.1.3.6.js"></script>
+  <script type="text/javascript" src="https://www.gwp.or.kr/js/lib/driverjs/v136/driver.js.iife.1.3.6.js"></script>
 
 
 
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/hashids/hashids.js"></script>
-<script type="text/javascript" src="https://www.gwp.or.kr/jehu/js/moment.min.js"></script>
-<script type="text/javascript" src="https://www.gwp.or.kr/jehu/js/ko.min.js"></script>
+  <script type="text/javascript" src="https://www.gwp.or.kr/js/lib/hashids/hashids.js"></script>
+  <script type="text/javascript" src="https://www.gwp.or.kr/jehu/js/moment.min.js"></script>
+  <script type="text/javascript" src="https://www.gwp.or.kr/jehu/js/ko.min.js"></script>
 
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/inputmask/dist/inputmask.min.js"></script>
-<script type="text/javascript" src="https://www.gwp.or.kr/js/lib/js-loading-overlay/js-loading-overlay.min.js"></script>
-<script src="https://www.gwp.or.kr/js/lib/pako.min.js"></script>
+  <script type="text/javascript" src="https://www.gwp.or.kr/js/lib/inputmask/dist/inputmask.min.js"></script>
+  <script type="text/javascript"
+    src="https://www.gwp.or.kr/js/lib/js-loading-overlay/js-loading-overlay.min.js"></script>
+  <script src="https://www.gwp.or.kr/js/lib/pako.min.js"></script>
 
 
-<script src="https://www.gwp.or.kr/js/nxt/nxtUtil.js"></script>
+  <script src="https://www.gwp.or.kr/js/nxt/nxtUtil.js"></script>
 </body>
 
 <script type="module">
@@ -891,14 +884,14 @@
   import focus from '../../../../js/lib/alpinejs/alpinjs_focus_esm.3.14.1.js'
   import collapse from '../../../../js/lib/alpinejs/alpine-collapse.3.14.9.esm.js'
 
-  import {processor} from '../../../../js/lib/bot/js/processor.js'*/
+  import {processor} from '../../../js/lib/bot/js/processor.js'*/
 
   import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/+esm'
   import focus from 'https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.9/+esm'
   import collapse from 'https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.9/+esm'
 
 
-  import {processor} from '/bhdBot/bot/js/processor.js'
+  import { processor } from '../bot/js/processor.js'
 
   //window.Alpine = Alpine
 
@@ -906,7 +899,7 @@
   const now = new Date()
 
   // 서버시간과 60분이상 차이난다면
-  if(Math.abs(now - new Date().getTime())>3600000){
+  if (Math.abs(now - new Date().getTime()) > 3600000) {
     alert(`컴퓨터 시간을 확인해주세요
 
 서버 시간: ${new Date(now).toLocaleString()}
@@ -920,4 +913,5 @@
 
 
 </script>
+
 </html>

@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "boostrap": "^2.0.0",
-    "bootstrap": "^5.3.7"
+    "bootstrap": "^5.3.7",
+    "pica": "^9.0.1"
   },
   "devDependencies": {
     "jest": "^29.7.0"
